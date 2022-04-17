@@ -5,7 +5,7 @@ Lab 4 is a big project consisting of four parts.
 ## Lab 4 Part A
 Your report must contain the following *two* files:
 
-* `template.drawio` with the source of the diagrams
+* `template.drawio` with the source of the diagrams. LINK to src: https://drive.google.com/file/d/1aGn-9cvR46aNwahuRCNVr0wN23kcALuV/view?usp=sharing
 * `lab4A.pdf` file with the EER and RM diagrams, created from the drawio template **as a PDF document**
 
 Place these files into this gitlab folder.
