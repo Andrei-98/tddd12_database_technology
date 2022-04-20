@@ -186,8 +186,56 @@ FROM jbemployee;
 
 /*6. List all employees who have a last name ending with “son”. **/
 
+SELECT name
+FROM jbemployee
+WHERE name LIKE '%son,%';
+
+/*
++---------------+
+| name          |
++---------------+
+| Thompson, Bob |
++---------------+
+*/
+
+
 /*7. Which items (note items, not parts) have been delivered by a supplier
 called Fisher-Price? Formulate this query by using a subquery in the
 WHERE clause.*/
 
+SELECT name 
+FROM jbitem 
+WHERE supplier NOT IN (
+    SELECT id 
+    FROM jbsupplier 
+    WHERE name!='Fisher-Price'
+);
+
+/*
++-----------------+
+| name            |
++-----------------+
+| Maze            |
+| The 'Feel' Book |
+| Squeeze Ball    |
++-----------------+
+*/
+
+
 /*8. Formulate the same query as above, but without a subquery. **/
+
+SELECT I.name 
+FROM jbitem AS I 
+INNER JOIN jbsupplier as S 
+ON I.supplier=S.id 
+WHERE S.name='Fisher-Price';
+
+/*
++-----------------+
+| name            |
++-----------------+
+| Maze            |
+| The 'Feel' Book |
+| Squeeze Ball    |
++-----------------+
+*/
