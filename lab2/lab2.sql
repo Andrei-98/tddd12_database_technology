@@ -243,13 +243,71 @@ WHERE S.name='Fisher-Price';
 
 /*9. List all cities that have suppliers located in them. Formulate this query using a subquery in the WHERE clause.*/
 
+SELECT name
+FROM jbcity
+WHERE id IN (
+    SELECT city
+    FROM jbsupplier
+) 
+/*ORDER BY name ASC;*/
+
+/*+----------------+
+| name           |
++----------------+
+| Amherst        |
+| Atlanta        |
+| Boston         |
+| Dallas         |
+| Denver         |
+| Hickville      |
+| Los Angeles    |
+| Madison        |
+| New York       |
+| Paxton         |
+| Salt Lake City |
+| San Diego      |
+| San Francisco  |
+| Seattle        |
+| White Plains   |
++----------------+
+*/
+
+/*10. What is the name and the color of the parts that are heavier than a card reader? Formulate this query using a subquery in the WHERE clause. (The query must not contain the weight of the card reader as a constant; instead, the weight has to be retrieved within the query.)*/
+
+SELECT name, color
+FROM jbparts
+WHERE weight > (
+    SELECT weight 
+    FROM jbparts 
+    WHERE name='card reader'
+);
+
+/*
++--------------+--------+
+| name         | color  |
++--------------+--------+
+| disk drive   | black  |
+| tape drive   | black  |
+| line printer | yellow |
+| card punch   | gray   |
++--------------+--------+
+*/
 
 
-/*10. What is the name and the color of the parts that are heavier than a card reader? Formulate this query using a subquery in the WHERE clause. (The query must not contain the weight of the card reader as a constant; instead, the weight has to be retrieved within the query.)
+/*11. Formulate the same query as above, but without a subquery. Again, the query must not contain the weight of the card reader as a constant.*/
 
+SELECT A.name, A.color FROM jbparts as A JOIN jbparts as B on A.weight > B.weight AND B.name='card reader';
 
-/*11. Formulate the same query as above, but without a subquery. Again, the query must not contain the weight of the card reader as a constant.
-
+/*
++--------------+--------+
+| name         | color  |
++--------------+--------+
+| disk drive   | black  |
+| tape drive   | black  |
+| line printer | yellow |
+| card punch   | gray   |
++--------------+--------+
+*/
 
 /*12. What is the average weight of all black parts?
 
