@@ -241,14 +241,15 @@ WHERE S.name='Fisher-Price';
 */
 
 
-/*9. List all cities that have suppliers located in them. Formulate this query using a subquery in the WHERE clause.*/
+/*9. List all cities that have suppliers located in them. 
+Formulate this query using a subquery in the WHERE clause.*/
 
 SELECT name
 FROM jbcity
 WHERE id IN (
     SELECT city
     FROM jbsupplier
-) 
+); 
 /*ORDER BY name ASC;*/
 
 /*+----------------+
@@ -272,7 +273,10 @@ WHERE id IN (
 +----------------+
 */
 
-/*10. What is the name and the color of the parts that are heavier than a card reader? Formulate this query using a subquery in the WHERE clause. (The query must not contain the weight of the card reader as a constant; instead, the weight has to be retrieved within the query.)*/
+/*10. What is the name and the color of the parts that are heavier than a 
+card reader? Formulate this query using a subquery in the WHERE clause. 
+(The query must not contain the weight of the card reader as a constant;
+ instead, the weight has to be retrieved within the query.)*/
 
 SELECT name, color
 FROM jbparts
@@ -294,9 +298,13 @@ WHERE weight > (
 */
 
 
-/*11. Formulate the same query as above, but without a subquery. Again, the query must not contain the weight of the card reader as a constant.*/
+/*11. Formulate the same query as above, but without a subquery. 
+Again, the query must not contain the weight of the card reader as a constant.*/
 
-SELECT A.name, A.color FROM jbparts as A JOIN jbparts as B on A.weight > B.weight AND B.name='card reader';
+SELECT A.name, A.color 
+FROM jbparts as A 
+JOIN jbparts as B on A.weight > B.weight 
+AND B.name='card reader';
 
 /*
 +--------------+--------+
@@ -309,10 +317,71 @@ SELECT A.name, A.color FROM jbparts as A JOIN jbparts as B on A.weight > B.weigh
 +--------------+--------+
 */
 
-/*12. What is the average weight of all black parts?
+/*12. What is the average weight of all black parts?*/
+
+SELECT AVG(weight)
+FROM jbparts
+WHERE color='black';
+
+/*
++-------------+
+| AVG(weight) |
++-------------+
+|    347.2500 |
++-------------+
+*/
 
 
-/*13. For every supplier in Massachusetts (“Mass”), retrieve the name and the total weight of all parts that the supplier has delivered? Do not forget to take the quantity of delivered parts into account. Note that one row should be returned for each supplier.
+/*13. For every supplier in Massachusetts (“Mass”), retrieve the name and the total weight of all parts that the supplier has delivered? Do not forget to take the quantity of delivered parts into account. Note that one row should be returned for each supplier.*/
+
+/* NON CTE SOLUTION
+select T.name, SUM(quan*weight) from (select MAIN.name, MAIN.part, MAIN.quan, P.weight from (SELECT idname.name, S.part, S.quan FROM jbsupply as S INNER JOIN (SELECT id, name FROM jbsupplier WHERE city IN (SELECT id FROM jbcity WHERE state='mass')) as idname ON S.supplier=idname.id) as MAIN LEFT JOIN jbparts as P ON MAIN.part=P.id) as T group by name;
+CTE SOLUTION BASICALLY THE SAME BUT EASIER TO READ
+*/
+WITH Supplier_id_name AS 
+(
+    SELECT id,name 
+    FROM jbsupplier 
+    WHERE city IN 
+        (SELECT id 
+        FROM jbcity 
+        WHERE state='mass')
+),
+
+Supplier_id_name_quan AS
+(
+    SELECT Supplier_id_name.name,
+         S.part,
+         S.quan
+    FROM jbsupply AS S
+    INNER JOIN Supplier_id_name
+    ON S.supplier=Supplier_id_name.id
+),
+
+Name_quan_weigth AS
+(
+    SELECT Supplier_id_name_quan.name,
+         Supplier_id_name_quan.part,
+         Supplier_id_name_quan.quan,
+         P.weight
+    FROM Supplier_id_name_quan
+    LEFT JOIN jbparts AS P
+    ON Supplier_id_name_quan.part=P.id
+)
+
+SELECT Name_quan_weigth.name, 
+    SUM(quan*weight)
+FROM Name_quan_weigth
+GROUP BY name;
+
+/*
++--------------+------------------+
+| name         | SUM(quan*weight) |
++--------------+------------------+
+| DEC          |             3120 |
+| Fisher-Price |          1135000 |
++--------------+------------------+
+*/
 
 
 /*14. Create a new relation with the same attributes as the jbitems relation by using the CREATE TABLE command where you define every attribute explicitly (i.e., not as a copy of another table). Then, populate this new relation with all items that cost less than the average price for all items. Remember to define the primary key and foreign keys in your table!
