@@ -585,6 +585,7 @@ DELETE
 FROM jbcity
 WHERE name='Los Angeles';
 
+/*Answer b) Since the city Los Angeles has a foreign key referring to supplier, in turn referring to item, in turn referring to sale. First the sale reference has to be deleted then the item references, then the supplier references and finally the city row can be deleted from the table. */
 
 
 /*20. An employee has tried to find out which suppliers have delivered items that have been sold. To this end, the employee has created a view and a query that lists the number of items sold from a supplier.*/
