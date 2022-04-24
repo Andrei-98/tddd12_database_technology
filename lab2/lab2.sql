@@ -1,5 +1,5 @@
 /*
-Lab 2 report <Student_names and liu_id>
+Lab 2 report danhu849 & andpl509
 */
 
 /* All non code should be within SQL-comments like this */ 
@@ -8,7 +8,7 @@ Lab 2 report <Student_names and liu_id>
 /*
 Drop all user created tables that have been created when solving the lab
 */
-DROP TABLE IF EXISTS cheaperthanjbitem CASCADE;
+-- DROP TABLE IF EXISTS cheaperthanjbitem CASCADE;
 
 
 -- /* Have the source scripts in the file so it is easy to recreate!*/
@@ -472,7 +472,9 @@ On the contrary a virtual view updates automatically if any of the date the view
 
 
 /*17. Create a view that calculates the total cost of each debit, by considering price and quantity of each bought item. (To be used for charging customer accounts). The view should contain the sale identifier (debit) and the total cost. In the query that defines the view, capture the join condition in the WHERE clause (i.e., do not capture the join in the FROM clause by using keywords inner join, right join or left join).*/
-DROP VIEW IF EXISTS debit_view CASCADE;
+
+-- DROP VIEW IF EXISTS debit_view CASCADE;
+
 /*
 WITH item_price AS (
     SELECT D.debit, D.item, D.quantity, I.price
@@ -505,20 +507,20 @@ total_price AS (
 We use a left join because the jbsale contains all the columns that we want to keep. Meanwhile the other table jbsale has only a couple of columns that we are interested in. 
 */
 
-CREATE VIEW debit_view AS
-(
-    SELECT item_price.debit, SUM(item_price.quantity
-    * item_price.price) AS 'total price'
-    FROM (
-            SELECT debit, item, quantity, price
-            FROM jbsale
-            LEFT JOIN jbitem as I 
-            ON item = I.id 
-        ) AS item_price
-    GROUP BY item_price.debit
-);
+-- CREATE VIEW debit_view AS
+-- (
+--     SELECT item_price.debit, SUM(item_price.quantity
+--     * item_price.price) AS 'total price'
+--     FROM (
+--             SELECT debit, item, quantity, price
+--             FROM jbsale
+--             LEFT JOIN jbitem as I 
+--             ON item = I.id 
+--         ) AS item_price
+--     GROUP BY item_price.debit
+-- );
 
-SELECT * FROM debit_view;
+-- SELECT * FROM debit_view;
 /*
 +--------+-------------+
 | debit  | total price |
@@ -539,12 +541,18 @@ a) Remove all suppliers in Los Angeles from the jbsupplier table. This will not 
 
 
 
-/*20. An employee has tried to find out which suppliers have delivered items that have been sold. To this end, the employee has created a view and a query that lists the number of items sold from a supplier. mysql> CREATE VIEW jbsale_supply(supplier, item, quantity) AS
-> SELECT jbsupplier.name, jbitem.name, jbsale.quantity
-> FROM jbsupplier, jbitem, jbsale
-> WHERE jbsupplier.id = jbitem.supplier
-> AND jbsale.item = jbitem.id;
-Query OK, 0 rows affected (0.01 sec)
+/*20. An employee has tried to find out which suppliers have delivered items that have been sold. To this end, the employee has created a view and a query that lists the number of items sold from a supplier.*/
+
+SET FOREIGN_KEY_CHECKS=0;
+SET FOREIGN_KEY_CHECKS=1;
+
+CREATE VIEW jbsale_supply(supplier, item, quantity) AS
+SELECT jbsupplier.name, jbitem.name, jbsale.quantity
+FROM jbsupplier, jbitem, jbsale
+WHERE jbsupplier.id = jbitem.supplier
+AND jbsale.item = jbitem.id;
+
+/*Query OK, 0 rows affected (0.01 sec)
 mysql> SELECT supplier, sum(quantity) AS sum FROM jbsale_supply
 > GROUP BY supplier;
 +++
@@ -558,3 +566,4 @@ mysql> SELECT supplier, sum(quantity) AS sum FROM jbsale_supply
 +++
 5 rows in set (0.00 sec)
 Now, the employee also wants to include the suppliers that have delivered some items, although for whom no items have been sold so far. In other words, he wants to list all suppliers that have supplied any item, as well as the number of these items that have been sold. Help him! Drop and redefine the jbsale_supply view to also consider suppliers that have delivered items that have never been sold. Hint: Notice that the above definition of jbsale_supply uses an (implicit) inner join that removes suppliers that have not had any of their delivered items sold.
+
