@@ -8,8 +8,6 @@ Lab 2 report danhu849 & andpl509
 /*
 Drop all user created tables that have been created when solving the lab
 */
--- DROP TABLE IF EXISTS cheaperthanjbitem CASCADE;
-
 
 -- /* Have the source scripts in the file so it is easy to recreate!*/
 
@@ -35,8 +33,8 @@ Drop all user created tables that have been created when solving the lab
 
 -- /*1. List all employees, i.e., all tuples in the jbemployee relation.*/
 
--- SELECT name
--- FROM jbemployee;
+SELECT name
+FROM jbemployee;
 
 -- /*
 -- +--------------------+
@@ -74,9 +72,9 @@ Drop all user created tables that have been created when solving the lab
 -- /*2. List the name of all departments in alphabetical order. Note: by “name”
 -- we mean the name attribute in the jbdept relation.*/
 
--- SELECT name 
--- FROM jbdept 
--- ORDER BY name ASC;
+SELECT name 
+FROM jbdept 
+ORDER BY name ASC;
 
 -- /*
 -- +------------------+
@@ -108,9 +106,9 @@ Drop all user created tables that have been created when solving the lab
 -- /*3. What parts are not in store? Note that such parts have the value 0 (zero)
 -- for the qoh attribute (qoh = quantity on hand). **/
 
--- SELECT name
--- FROM jbparts 
--- WHERE qoh=0;
+SELECT name
+FROM jbparts 
+WHERE qoh=0;
 
 -- /*
 -- +-------------------+
@@ -127,9 +125,9 @@ Drop all user created tables that have been created when solving the lab
 -- /*4. List all employees who have a salary between 9000 (included) and
 -- 10000 (included)? **/
 
--- SELECT name
--- FROM jbemployee
--- WHERE salary >= 9000 AND salary <= 10000;
+SELECT name
+FROM jbemployee
+WHERE salary >= 9000 AND salary <= 10000;
 
 -- /*
 -- +----------------+
@@ -185,9 +183,9 @@ Drop all user created tables that have been created when solving the lab
 
 -- /*6. List all employees who have a last name ending with “son”. **/
 
--- SELECT name
--- FROM jbemployee
--- WHERE name LIKE '%son,%';
+SELECT name
+FROM jbemployee
+WHERE name LIKE '%son,%';
 
 -- /*
 -- +---------------+
@@ -202,13 +200,13 @@ Drop all user created tables that have been created when solving the lab
 -- called Fisher-Price? Formulate this query by using a subquery in the
 -- WHERE clause.*/
 
--- SELECT name 
--- FROM jbitem 
--- WHERE supplier NOT IN (
---     SELECT id 
---     FROM jbsupplier 
---     WHERE name!='Fisher-Price'
--- );
+SELECT name 
+FROM jbitem 
+WHERE supplier NOT IN (
+    SELECT id 
+    FROM jbsupplier 
+    WHERE name!='Fisher-Price'
+);
 
 -- /*
 -- +-----------------+
@@ -223,11 +221,11 @@ Drop all user created tables that have been created when solving the lab
 
 -- /*8. Formulate the same query as above, but without a subquery. **/
 
--- SELECT I.name 
--- FROM jbitem AS I 
--- INNER JOIN jbsupplier as S 
--- ON I.supplier=S.id 
--- WHERE S.name='Fisher-Price';
+SELECT I.name 
+FROM jbitem AS I 
+INNER JOIN jbsupplier as S 
+ON I.supplier=S.id 
+WHERE S.name='Fisher-Price';
 
 -- /*
 -- +-----------------+
@@ -243,12 +241,13 @@ Drop all user created tables that have been created when solving the lab
 -- /*9. List all cities that have suppliers located in them. 
 -- Formulate this query using a subquery in the WHERE clause.*/
 
--- SELECT name
--- FROM jbcity
--- WHERE id IN (
---     SELECT city
---     FROM jbsupplier
--- ); 
+SELECT name
+FROM jbcity
+WHERE id IN (
+    SELECT city
+    FROM jbsupplier
+); 
+
 -- /*ORDER BY name ASC;*/
 
 -- /*+----------------+
@@ -277,13 +276,13 @@ Drop all user created tables that have been created when solving the lab
 -- (The query must not contain the weight of the card reader as a constant;
 --  instead, the weight has to be retrieved within the query.)*/
 
--- SELECT name, color
--- FROM jbparts
--- WHERE weight > (
---     SELECT weight 
---     FROM jbparts 
---     WHERE name='card reader'
--- );
+SELECT name, color
+FROM jbparts
+WHERE weight > (
+    SELECT weight 
+    FROM jbparts 
+    WHERE name='card reader'
+);
 
 -- /*
 -- +--------------+--------+
@@ -300,10 +299,10 @@ Drop all user created tables that have been created when solving the lab
 -- /*11. Formulate the same query as above, but without a subquery. 
 -- Again, the query must not contain the weight of the card reader as a constant.*/
 
--- SELECT A.name, A.color 
--- FROM jbparts as A 
--- JOIN jbparts as B on A.weight > B.weight 
--- AND B.name='card reader';
+SELECT A.name, A.color 
+FROM jbparts as A 
+JOIN jbparts as B on A.weight > B.weight 
+AND B.name='card reader';
 
 -- /*
 -- +--------------+--------+
@@ -318,9 +317,9 @@ Drop all user created tables that have been created when solving the lab
 
 -- /*12. What is the average weight of all black parts?*/
 
--- SELECT AVG(weight)
--- FROM jbparts
--- WHERE color='black';
+SELECT AVG(weight)
+FROM jbparts
+WHERE color='black';
 
 -- /*
 -- +-------------+
@@ -337,43 +336,44 @@ Drop all user created tables that have been created when solving the lab
 -- select T.name, SUM(quan*weight) from (select MAIN.name, MAIN.part, MAIN.quan, P.weight from (SELECT idname.name, S.part, S.quan FROM jbsupply as S INNER JOIN (SELECT id, name FROM jbsupplier WHERE city IN (SELECT id FROM jbcity WHERE state='mass')) as idname ON S.supplier=idname.id) as MAIN LEFT JOIN jbparts as P ON MAIN.part=P.id) as T group by name;
 -- CTE SOLUTION BASICALLY THE SAME BUT EASIER TO READ
 -- */
--- WITH Supplier_id_name AS 
--- (
---     SELECT id,name 
---     FROM jbsupplier 
---     WHERE city IN 
---         (
---             SELECT id 
---             FROM jbcity 
---             WHERE state='mass'
---         )
--- ),
 
--- Supplier_id_name_quan AS
--- (
---     SELECT Supplier_id_name.name,
---          S.part,
---          S.quan
---     FROM jbsupply AS S
---     INNER JOIN Supplier_id_name
---     ON S.supplier=Supplier_id_name.id
--- ),
+WITH Supplier_id_name AS 
+(
+    SELECT id,name 
+    FROM jbsupplier 
+    WHERE city IN 
+        (
+            SELECT id 
+            FROM jbcity 
+            WHERE state='mass'
+        )
+),
 
--- Name_quan_weigth AS
--- (
---     SELECT Supplier_id_name_quan.name,
---          Supplier_id_name_quan.part,
---          Supplier_id_name_quan.quan,
---          P.weight
---     FROM Supplier_id_name_quan
---     LEFT JOIN jbparts AS P
---     ON Supplier_id_name_quan.part=P.id
--- )
+Supplier_id_name_quan AS
+(
+    SELECT Supplier_id_name.name,
+         S.part,
+         S.quan
+    FROM jbsupply AS S
+    INNER JOIN Supplier_id_name
+    ON S.supplier=Supplier_id_name.id
+),
 
--- SELECT Name_quan_weigth.name, 
---     SUM(quan*weight)
--- FROM Name_quan_weigth
--- GROUP BY name;
+Name_quan_weigth AS
+(
+    SELECT Supplier_id_name_quan.name,
+         Supplier_id_name_quan.part,
+         Supplier_id_name_quan.quan,
+         P.weight
+    FROM Supplier_id_name_quan
+    LEFT JOIN jbparts AS P
+    ON Supplier_id_name_quan.part=P.id
+)
+
+SELECT Name_quan_weigth.name, 
+    SUM(quan*weight)
+FROM Name_quan_weigth
+GROUP BY name;
 
 -- /*
 -- +--------------+------------------+
@@ -387,28 +387,30 @@ Drop all user created tables that have been created when solving the lab
 
 /*14. Create a new relation with the same attributes as the jbitems relation by using the CREATE TABLE command where you define every attribute explicitly (i.e., not as a copy of another table). Then, populate this new relation with all items that cost less than the average price for all items. Remember to define the primary key and foreign keys in your table!*/
 
--- CREATE TABLE cheaperthanjbitem
--- (
---     id int,
---     name varchar(255),
---     dept int,
---     price int,
---     qoh int,
---     supplier int,
+DROP TABLE IF EXISTS cheaperthanjbitem CASCADE;
 
---     constraint pk_id
---     primary key(id),
+CREATE TABLE cheaperthanjbitem
+(
+    id int,
+    name varchar(255),
+    dept int,
+    price int,
+    qoh int,
+    supplier int,
 
---     constraint fk_supplier
---     FOREIGN KEY (supplier) REFERENCES jbsupplier(id)
--- );
+    constraint pk_id
+    primary key(id),
 
--- INSERT INTO cheaperthanjbitem
--- SELECT * 
--- FROM jbitem
--- WHERE price<(SELECT AVG(price) FROM jbitem);
+    constraint fk_supplier
+    FOREIGN KEY (supplier) REFERENCES jbsupplier(id)
+);
 
--- SELECT * from cheaperthanjbitem;
+INSERT INTO cheaperthanjbitem
+SELECT * 
+FROM jbitem
+WHERE price<(SELECT AVG(price) FROM jbitem);
+
+SELECT * from cheaperthanjbitem;
 
 /*
 +-----+-----------------+------+-------+------+----------+
@@ -432,15 +434,15 @@ Drop all user created tables that have been created when solving the lab
 */
 
 /*15. Create a view that contains the items that cost less than the average price for items. */
--- DROP VIEW IF EXISTS view_cheaper CASCADE;
 
+DROP VIEW IF EXISTS view_cheaper CASCADE;
 
--- CREATE VIEW view_cheaper AS
--- SELECT * 
--- FROM jbitem
--- WHERE price<(SELECT AVG(price) FROM jbitem);
+CREATE VIEW view_cheaper AS
+SELECT * 
+FROM jbitem
+WHERE price<(SELECT AVG(price) FROM jbitem);
 
--- SELECT * FROM view_cheaper;
+SELECT * FROM view_cheaper;
 
 /*
 +-----+-----------------+------+-------+------+----------+
@@ -473,33 +475,34 @@ On the contrary a virtual view updates automatically if any of the date the view
 
 /*17. Create a view that calculates the total cost of each debit, by considering price and quantity of each bought item. (To be used for charging customer accounts). The view should contain the sale identifier (debit) and the total cost. In the query that defines the view, capture the join condition in the WHERE clause (i.e., do not capture the join in the FROM clause by using keywords inner join, right join or left join).*/
 
--- DROP VIEW IF EXISTS debit_view CASCADE;
+DROP VIEW IF EXISTS debit_view CASCADE;
+
+
+CREATE VIEW debit_view AS
+(
+    SELECT item_price.debit, SUM(item_price.quantity
+    * item_price.price) AS 'total price'
+    FROM (
+        SELECT D.debit, D.item, D.quantity, I.price
+        FROM jbsale AS D, jbitem AS I
+        WHERE D.item=I.id
+        ) AS item_price
+    GROUP BY item_price.debit
+);
+
+SELECT * FROM debit_view;
 
 /*
-WITH item_price AS (
-    SELECT D.debit, D.item, D.quantity, I.price
-    FROM jbsale AS D, jbitem AS I
-    WHERE D.item=I.id
-), 
-
-total_price AS (
-    SELECT debit, SUM(quantity*price)
-    FROM item_price
-    GROUP BY debit
-)
++--------+-------------+
+| debit  | total price |
++--------+-------------+
+| 100581 |        2050 |
+| 100586 |       13446 |
+| 100592 |         650 |
+| 100593 |         430 |
+| 100594 |        3295 |
++--------+-------------+
 */
--- CREATE VIEW debit_view AS
--- (
---     SELECT item_price.debit, SUM(item_price.quantity
---     * item_price.price) AS 'total price'
---     FROM (
---         SELECT D.debit, D.item, D.quantity, I.price
---         FROM jbsale AS D, jbitem AS I
---         WHERE D.item=I.id
---         ) AS item_price
---     GROUP BY item_price.debit
--- );
--- SELECT * FROM debit_view;
 
 /*18. Do the same as in the previous point, but now capture the join conditions in the FROM clause by using only left, right or inner joins. Hence, the WHERE clause must not contain any join condition in this case. Motivate why you use type of join you do (left, right or inner), and why this is the correct one (in contrast to the other types of joins).*/
 
@@ -507,20 +510,22 @@ total_price AS (
 We use a left join because the jbsale contains all the columns that we want to keep. Meanwhile the other table jbsale has only a couple of columns that we are interested in. 
 */
 
--- CREATE VIEW debit_view AS
--- (
---     SELECT item_price.debit, SUM(item_price.quantity
---     * item_price.price) AS 'total price'
---     FROM (
---             SELECT debit, item, quantity, price
---             FROM jbsale
---             LEFT JOIN jbitem as I 
---             ON item = I.id 
---         ) AS item_price
---     GROUP BY item_price.debit
--- );
+DROP VIEW IF EXISTS debit_view CASCADE;
 
--- SELECT * FROM debit_view;
+CREATE VIEW debit_view AS
+(
+    SELECT item_price.debit, SUM(item_price.quantity
+    * item_price.price) AS 'total price'
+    FROM (
+            SELECT debit, item, quantity, price
+            FROM jbsale
+            LEFT JOIN jbitem as I 
+            ON item = I.id 
+        ) AS item_price
+    GROUP BY item_price.debit
+);
+
+SELECT * FROM debit_view;
 /*
 +--------+-------------+
 | debit  | total price |
@@ -562,13 +567,6 @@ CREATE VIEW 13_items_ids AS
     ON I.supplier=13_supplier_id.id
 ;
 
-
--- select * from 13_city_id;
--- select * from 13_supplier_id;
--- select * from 13_items_ids;
-
--- select * from jbsale;
-
 DELETE
 FROM jbsale
 WHERE item IN (SELECT * FROM 13_items_ids);
@@ -585,36 +583,47 @@ DELETE
 FROM jbcity
 WHERE name='Los Angeles';
 
+
 /*Answer b) Since the city Los Angeles has a foreign key referring to supplier, in turn referring to item, in turn referring to sale. First the sale reference has to be deleted then the item references, then the supplier references and finally the city row can be deleted from the table. */
 
 
 /*20. An employee has tried to find out which suppliers have delivered items that have been sold. To this end, the employee has created a view and a query that lists the number of items sold from a supplier.*/
 
--- SET FOREIGN_KEY_CHECKS=0;
--- SET FOREIGN_KEY_CHECKS=1;
 
--- DROP VIEW IF EXISTS jbsale_supply CASCADE;
+DROP VIEW IF EXISTS jbsale_supply CASCADE;
 
--- CREATE VIEW jbsale_supply(supplier, item, quantity) AS
--- SELECT 
--- FROM jbsupplier, jbitem, jbsale
--- WHERE jbsupplier.id = jbitem.supplier
--- AND jbsale.item = jbitem.id;
+CREATE VIEW jbsale_supply(supplier, item, quantity) AS
+SELECT jbsupplier.name, jbitem.name, jbsale.quantity
+FROM jbsupplier, jbitem, jbsale
+WHERE jbsupplier.id = jbitem.supplier
+AND jbsale.item = jbitem.id;
 
--- SELECT supplier, sum(quantity) AS sum FROM jbsale_supply
--- GROUP BY supplier;
 
-/*DROP VIEW IF EXISTS jbsale_supply CASCADE;*/
--- DROP VIEW IF EXISTS any_supply CASCADE;
 
--- CREATE VIEW any_supply(supplier, item, qoh) AS
--- SELECT jbsupplier.name, GROUP_CONCAT(jbitem.name), GROUP_CONCAT(jbitem.qoh)
--- FROM jbsupplier
--- JOIN jbitem
--- WHERE jbsupplier.id = jbitem.supplier
--- GROUP BY jbsupplier.name;
+DROP VIEW IF EXISTS jbsale_supply CASCADE;
 
--- SELECT * from any_supply;
+
+CREATE VIEW jbsale_supply(supplier, item, quantity) AS
+SELECT jbsupplier.name, jbitem.name, jbsale.quantity 
+FROM jbsupplier, jbitem
+LEFT JOIN jbsale ON jbsale.item = jbitem.id
+WHERE jbsupplier.id = jbitem.supplier;
+
+SELECT supplier, sum(quantity) AS 'sold items' FROM jbsale_supply
+GROUP BY supplier;
+
+/*
++--------------+------------+
+| supplier     | sold items |
++--------------+------------+
+| Cannon       |          6 |
+| Fisher-Price |       NULL |
+| Levi-Strauss |          1 |
+| Playskool    |          2 |
+| White Stag   |          4 |
+| Whitman's    |          2 |
++--------------+------------+
+*/
 
 /*Query OK, 0 rows affected (0.01 sec)
 mysql> SELECT supplier, sum(quantity) AS sum FROM jbsale_supply
