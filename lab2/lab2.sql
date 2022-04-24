@@ -536,21 +536,84 @@ We use a left join because the jbsale contains all the columns that we want to k
 
 
 /*19. Oh no! An earthquake!
-a) Remove all suppliers in Los Angeles from the jbsupplier table. This will not work right away. Instead, you will receive an error with error code 23000 which you will have to solve by deleting some otherrelated tuples. However, do not delete more tuples from other tables than necessary, and do not change the structure of the tables (i.e., do not remove foreign keys). Also, you are only allowed to use “Los Angeles” as a constant in your queries, not “199” or “900”. b) Explain what you did and why.
+a) Remove all suppliers in Los Angeles from the jbsupplier table. This will not work right away. Instead, you will receive an error with error code 23000 which you will have to solve by deleting some otherrelated tuples. However, do not delete more tuples from other tables than necessary, and do not change the structure of the tables (i.e., do not remove foreign keys). Also, you are only allowed to use “Los Angeles” as a constant in your queries, not “199” or “900”. b) Explain what you did and why.*/
 
+DROP VIEW IF EXISTS 13_city_id, 13_supplier_id, 13_items_ids CASCADE;
+
+CREATE VIEW 13_city_id AS
+
+    SELECT C.id
+    FROM jbcity as C 
+    WHERE C.name='Los Angeles'
+;
+
+CREATE VIEW 13_supplier_id AS
+
+    SELECT S.id
+    FROM 13_city_id, jbsupplier AS S
+    WHERE 13_city_id.id=S.city
+;
+
+CREATE VIEW 13_items_ids AS
+
+    SELECT I.id
+    FROM jbitem as I
+    INNER JOIN 13_supplier_id
+    ON I.supplier=13_supplier_id.id
+;
+
+
+-- select * from 13_city_id;
+-- select * from 13_supplier_id;
+-- select * from 13_items_ids;
+
+-- select * from jbsale;
+
+DELETE
+FROM jbsale
+WHERE item IN (SELECT * FROM 13_items_ids);
+
+DELETE
+FROM jbitem
+WHERE id IN (SELECT * FROM 13_items_ids);
+
+DELETE
+FROM jbsupplier
+WHERE id IN (SELECT * FROM 13_supplier_id);
+
+DELETE
+FROM jbcity
+WHERE name='Los Angeles';
 
 
 
 /*20. An employee has tried to find out which suppliers have delivered items that have been sold. To this end, the employee has created a view and a query that lists the number of items sold from a supplier.*/
 
-SET FOREIGN_KEY_CHECKS=0;
-SET FOREIGN_KEY_CHECKS=1;
+-- SET FOREIGN_KEY_CHECKS=0;
+-- SET FOREIGN_KEY_CHECKS=1;
 
-CREATE VIEW jbsale_supply(supplier, item, quantity) AS
-SELECT jbsupplier.name, jbitem.name, jbsale.quantity
-FROM jbsupplier, jbitem, jbsale
-WHERE jbsupplier.id = jbitem.supplier
-AND jbsale.item = jbitem.id;
+-- DROP VIEW IF EXISTS jbsale_supply CASCADE;
+
+-- CREATE VIEW jbsale_supply(supplier, item, quantity) AS
+-- SELECT 
+-- FROM jbsupplier, jbitem, jbsale
+-- WHERE jbsupplier.id = jbitem.supplier
+-- AND jbsale.item = jbitem.id;
+
+-- SELECT supplier, sum(quantity) AS sum FROM jbsale_supply
+-- GROUP BY supplier;
+
+/*DROP VIEW IF EXISTS jbsale_supply CASCADE;*/
+-- DROP VIEW IF EXISTS any_supply CASCADE;
+
+-- CREATE VIEW any_supply(supplier, item, qoh) AS
+-- SELECT jbsupplier.name, GROUP_CONCAT(jbitem.name), GROUP_CONCAT(jbitem.qoh)
+-- FROM jbsupplier
+-- JOIN jbitem
+-- WHERE jbsupplier.id = jbitem.supplier
+-- GROUP BY jbsupplier.name;
+
+-- SELECT * from any_supply;
 
 /*Query OK, 0 rows affected (0.01 sec)
 mysql> SELECT supplier, sum(quantity) AS sum FROM jbsale_supply
