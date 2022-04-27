@@ -368,6 +368,7 @@ CREATE TABLE cheaperthanjbitem
 
     constraint fk_supplier
     FOREIGN KEY (supplier) REFERENCES jbsupplier(id)
+    ON DELETE CASCADE
 );
 
 INSERT INTO cheaperthanjbitem
@@ -376,6 +377,7 @@ FROM jbitem
 WHERE price<(SELECT AVG(price) FROM jbitem);
 
 SELECT * from cheaperthanjbitem;
+
 
 /*
 +-----+-----------------+------+-------+------+----------+
