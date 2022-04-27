@@ -332,48 +332,13 @@ WHERE color='black';
 
 -- /*13. For every supplier in Massachusetts (“Mass”), retrieve the name and the total weight of all parts that the supplier has delivered? Do not forget to take the quantity of delivered parts into account. Note that one row should be returned for each supplier.*/
 
--- /* NON CTE SOLUTION
--- select T.name, SUM(quan*weight) from (select MAIN.name, MAIN.part, MAIN.quan, P.weight from (SELECT idname.name, S.part, S.quan FROM jbsupply as S INNER JOIN (SELECT id, name FROM jbsupplier WHERE city IN (SELECT id FROM jbcity WHERE state='mass')) as idname ON S.supplier=idname.id) as MAIN LEFT JOIN jbparts as P ON MAIN.part=P.id) as T group by name;
--- CTE SOLUTION BASICALLY THE SAME BUT EASIER TO READ
--- */
+SELECT supplier.name, SUM(parts.weight * supply.quan) as 'Total weight'
+FROM jbsupplier AS supplier, jbsupply as supply, jbparts as parts
+WHERE supplier.city IN (SELECT id from jbcity WHERE state='MASS')
+AND parts.id = supply.part
+AND supply.supplier = supplier.id
+GROUP BY supplier.name;
 
-WITH Supplier_id_name AS 
-(
-    SELECT id,name 
-    FROM jbsupplier 
-    WHERE city IN 
-        (
-            SELECT id 
-            FROM jbcity 
-            WHERE state='mass'
-        )
-),
-
-Supplier_id_name_quan AS
-(
-    SELECT Supplier_id_name.name,
-         S.part,
-         S.quan
-    FROM jbsupply AS S
-    INNER JOIN Supplier_id_name
-    ON S.supplier=Supplier_id_name.id
-),
-
-Name_quan_weigth AS
-(
-    SELECT Supplier_id_name_quan.name,
-         Supplier_id_name_quan.part,
-         Supplier_id_name_quan.quan,
-         P.weight
-    FROM Supplier_id_name_quan
-    LEFT JOIN jbparts AS P
-    ON Supplier_id_name_quan.part=P.id
-)
-
-SELECT Name_quan_weigth.name, 
-    SUM(quan*weight)
-FROM Name_quan_weigth
-GROUP BY name;
 
 -- /*
 -- +--------------+------------------+
@@ -543,41 +508,50 @@ SELECT * FROM debit_view;
 /*19. Oh no! An earthquake!
 a) Remove all suppliers in Los Angeles from the jbsupplier table. This will not work right away. Instead, you will receive an error with error code 23000 which you will have to solve by deleting some otherrelated tuples. However, do not delete more tuples from other tables than necessary, and do not change the structure of the tables (i.e., do not remove foreign keys). Also, you are only allowed to use “Los Angeles” as a constant in your queries, not “199” or “900”. b) Explain what you did and why.*/
 
-DROP VIEW IF EXISTS 13_city_id, 13_supplier_id, 13_items_ids CASCADE;
 
-CREATE VIEW 13_city_id AS
-
-    SELECT C.id
-    FROM jbcity as C 
-    WHERE C.name='Los Angeles'
-;
-
-CREATE VIEW 13_supplier_id AS
-
-    SELECT S.id
-    FROM 13_city_id, jbsupplier AS S
-    WHERE 13_city_id.id=S.city
-;
-
-CREATE VIEW 13_items_ids AS
-
-    SELECT I.id
-    FROM jbitem as I
-    INNER JOIN 13_supplier_id
-    ON I.supplier=13_supplier_id.id
-;
-
+/* delete sale infromation for supplier based in Los Angeles using item id*/
 DELETE
 FROM jbsale
-WHERE item IN (SELECT * FROM 13_items_ids);
+WHERE item IN (SELECT * FROM 
+(
+    SELECT I.id
+    FROM jbitem as I
+    INNER JOIN 
+    (
+        SELECT S.id
+        FROM (SELECT C.id FROM jbcity as C WHERE C.name='Los Angeles') as city_id, jbsupplier AS S
+        WHERE city_id.id=S.city
+    ) as supplier_id
+    ON I.supplier=supplier_id.id
+) as itemid);
 
+
+/* delete item infromation for supplier based in Los Angeles using item id*/
 DELETE
 FROM jbitem
-WHERE id IN (SELECT * FROM 13_items_ids);
+WHERE id IN (SELECT * FROM 
+(
+    SELECT I.id
+    FROM jbitem as I
+    INNER JOIN 
+    (
+        SELECT S.id
+        FROM (SELECT C.id FROM jbcity as C WHERE C.name='Los Angeles') as city_id, jbsupplier AS S
+        WHERE city_id.id=S.city
+    ) as supplier_id
+    ON I.supplier=supplier_id.id
+) as itemid);
+
 
 DELETE
 FROM jbsupplier
-WHERE id IN (SELECT * FROM 13_supplier_id);
+WHERE id IN (SELECT * FROM (
+    SELECT S.id
+    FROM (SELECT C.id FROM jbcity as C WHERE C.name='Los Angeles') as city_id, jbsupplier AS S
+    WHERE city_id.id=S.city
+) as supplier_id);
+
+
 
 DELETE
 FROM jbcity
