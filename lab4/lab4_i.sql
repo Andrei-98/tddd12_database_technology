@@ -119,9 +119,8 @@ ALTER TABLE booking ADD CONSTRAINT fk_booking_reservation FOREIGN KEY (bookingid
 ALTER TABLE ticket ADD CONSTRAINT fk_ticket_booking FOREIGN KEY (bookingid) REFERENCES booking(bookingid);
 ALTER TABLE ticket ADD CONSTRAINT fk_ticket_passenger FOREIGN KEY (passnr) REFERENCES passenger(passnr);
 
--- Function creation
-SELECT 'Creating functions for ass3' AS 'Message';
-
+-- Procedure creation
+SELECT 'Creating procedures for ass3' AS 'Message';
 
 DROP PROCEDURE IF EXISTS addYear;
 DROP PROCEDURE IF EXISTS addDay;
@@ -129,7 +128,6 @@ DROP PROCEDURE IF EXISTS addDestination;
 DROP PROCEDURE IF EXISTS addRoute;
 DROP PROCEDURE IF EXISTS getRouteID;
 DROP PROCEDURE IF EXISTS addFlight;
-
 
 DELIMITER // 
 CREATE PROCEDURE addYear(IN p_year INT, IN p_factor DOUBLE)
@@ -169,26 +167,11 @@ CREATE PROCEDURE addFlight(IN in_departure_airport_code VARCHAR(3), IN in_arriva
 BEGIN
   DECLARE routeID INT DEFAULT -1;
   DECLARE week_cntr INT DEFAULT 1;
-  -- Insert dep and arr airport INTO froute - do nothing on duplicate
-  -- INSERT INTO froute(fromcode, tocode, year) 
-  -- VALUES (in_departure_airport_code, in_arrival_airport_code, in_year)
-  -- ON DUPLICATE KEY UPDATE froute.fromcode=froute.fromcode;
-
   
   CALL getRouteID(routeID, in_departure_airport_code, in_arrival_airport_code, in_year);
-  -- SELECT routeID as 'debug routeID';
-  -- Insert into weeklyschedule
   INSERT INTO weeklyschedule(year, day, routeid, dep_time)
-  VALUES (in_year, in_day, routeID, in_dep_time);-- How to add same routeid as above?
-  -- Weekly Schedule attrs:
-  -- year INT NOT NULL,
-  --     day VARCHAR(10) NOT NULL,
-  --     routeid INT,
-  --     dep_time TIME,
+  VALUES (in_year, in_day, routeID, in_dep_time);
 
-
-  -- Insert into flight for every week in a year (52 times)
-  
   WHILE week_cntr <= 52 DO
     INSERT INTO flight(week, year) VALUES (week_cntr, in_year);
     SET week_cntr = week_cntr + 1;
@@ -198,55 +181,51 @@ END; //
 
 DELIMITER ;
 
- 
+SELECT 'Creating functions for ass4' AS 'Message';
 
--- SELECT * from profitfactor;
--- call addYear(2000, 2.4);
--- SELECT * from profitfactor;
+DROP FUNCTION IF EXISTS calculateFreeSeats;
 
--- SELECT * from weekdayfactor;
--- call addDay(2000, 'Sunday', 5.3);
--- SELECT * from weekdayfactor;
+DELIMITER //
+CREATE FUNCTION calculateFreeSeats(flightnumber INT)
+RETURNS INT
+BEGIN
+  DECLARE freeseats INT DEFAULT 100; -- 100 is when it's wrong. -1 doesn't work.
 
--- SELECT * from airport;
--- call addDestination('BAU', 'Baubau Airport', 'Indonesia');
--- call addDestination('ARN', 'Stockholm Skavsta', 'Sweden');
--- SELECT * from airport;
+  SELECT vacantseats INTO freeseats
+  FROM flight
+  WHERE flight.flightnr=flightnumber;
 
--- SELECT * from froute;
--- call addRoute('BAU', 'ARN', 2018, 3600);
--- SELECT * from froute;
+  RETURN freeseats;
+END; //
 
--- CALL addFlight("ARN","BAU", 2000, "Sunday", "12:00:00");
--- SELECT * from froute;
--- SELECT * from weeklyschedule;
--- SELECT * from flight;
-
-
--- SELECT "Trying to add 2 years" AS "Message";
--- CALL addYear(2010, 2.3);
--- CALL addYear(2011, 2.5);
--- SELECT "Trying to add 4 days" AS "Message";
--- CALL addDay(2010,"Monday",1);
--- CALL addDay(2010,"Tuesday",1.5);
--- CALL addDay(2011,"Saturday",2);
--- CALL addDay(2011,"Sunday",2.5);
--- SELECT "Trying to add 2 destinations" AS "Message";
--- CALL addDestination("MIT","Minas Tirith","Mordor");
--- CALL addDestination("HOB","Hobbiton","The Shire");
--- SELECT "Trying to add 4 routes" AS "Message";
--- CALL addRoute("MIT","HOB",2010,2000);
--- CALL addRoute("HOB","MIT",2010,1600);
--- CALL addRoute("MIT","HOB",2011,2100);
--- CALL addRoute("HOB","MIT",2011,1500);
-
-
--- SELECT "Trying to add 4 weeklyschedule flights" AS "Message";
-
--- CALL addFlight("MIT","HOB", 2010, "Monday", "09:00:00");
--- CALL addFlight("HOB","MIT", 2010, "Tuesday", "10:00:00");
--- CALL addFlight("MIT","HOB", 2011, "Sunday", "11:00:00");
--- CALL addFlight("HOB","MIT", 2011, "Sunday", "12:00:00");
+DELIMITER ;
+-- ##############################################################
+-- TEST lines for Question3.sql
+SELECT "Trying to add 2 years" AS "Message";
+CALL addYear(2010, 2.3);
+CALL addYear(2011, 2.5);
+SELECT "Trying to add 4 days" AS "Message";
+CALL addDay(2010,"Monday",1);
+CALL addDay(2010,"Tuesday",1.5);
+CALL addDay(2011,"Saturday",2);
+CALL addDay(2011,"Sunday",2.5);
+SELECT "Trying to add 2 destinations" AS "Message";
+CALL addDestination("MIT","Minas Tirith","Mordor");
+CALL addDestination("HOB","Hobbiton","The Shire");
+SELECT "Trying to add 4 routes" AS "Message";
+CALL addRoute("MIT","HOB",2010,2000);
+CALL addRoute("HOB","MIT",2010,1600);
+CALL addRoute("MIT","HOB",2011,2100);
+CALL addRoute("HOB","MIT",2011,1500);
+SELECT "Trying to add 4 weeklyschedule flights" AS "Message";
+CALL addFlight("MIT","HOB", 2010, "Monday", "09:00:00");
+CALL addFlight("HOB","MIT", 2010, "Tuesday", "10:00:00");
+CALL addFlight("MIT","HOB", 2011, "Sunday", "11:00:00");
+CALL addFlight("HOB","MIT", 2011, "Sunday", "12:00:00");
 -- SELECT * from froute;
 -- SELECT * from weeklyschedule;
 -- SELECT * from flight;
+-- QUESION 3 TEST END #######################################
+-- QUESION 4 TEST START #######################################
+
+SELECT calculateFreeSeats(208);
