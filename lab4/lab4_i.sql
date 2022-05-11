@@ -34,21 +34,22 @@ CREATE TABLE contact
     
 CREATE TABLE weeklyschedule
     (year INT,
-    day VARCHAR(3),
+    day VARCHAR(10),
     routeid INT,
+    dep_time,
     CONSTRAINT pk_weekly_schedule PRIMARY KEY(year))
     -- CONSTRAINT uniq_day UNIQUE(day)) 
     ENGINE=InnoDB;
     
 CREATE TABLE weekdayfactor
     (year INT,
-    day VARCHAR(3),
+    day VARCHAR(10),
     weekdayfactor DOUBLE,
     CONSTRAINT pk_weekdayfactor PRIMARY KEY(day)) 
     ENGINE=InnoDB;
 
 CREATE TABLE froute
-     (routeid INT NOT NULL AUTO_INCREMENT,
+    (routeid INT NOT NULL AUTO_INCREMENT,
     fromcode VARCHAR(3),
     tocode VARCHAR(3),
     routeprice DOUBLE,
@@ -132,7 +133,7 @@ BEGIN
 INSERT INTO profitfactor(year, profitfactor) VALUES (p_year, p_factor);
 END; //
 
-CREATE PROCEDURE addDay(IN in_year INT, IN in_day VARCHAR(3), IN in_factor DOUBLE)
+CREATE PROCEDURE addDay(IN in_year INT, IN in_day VARCHAR(10), IN in_factor DOUBLE)
 BEGIN
 INSERT INTO weekdayfactor(year, day, weekdayfactor) VALUES (in_year, in_day, in_factor);
 END; //
@@ -145,6 +146,18 @@ END; //
 CREATE PROCEDURE addRoute(IN in_departure_airport_code VARCHAR(3), IN in_arrival_airport_code VARCHAR(3), IN in_year INT, IN in_routeprice INT)
 BEGIN
 INSERT INTO froute(fromcode, tocode, year, routeprice) 
+VALUES (in_departure_airport_code, in_arrival_airport_code, in_year, in_routeprice);
+END; //
+
+-- 
+
+CREATE PROCEDURE addFlight(IN in_departure_airport_code VARCHAR(3), IN in_arrival_airport_code VARCHAR(3), IN in_year INT, IN in_day INT, IN in_dep_time TIME)
+BEGIN
+-- Insert into weeklyschedule
+INSERT INTO weeklyschedule()
+-- Insert into flight
+
+INSERT INTO flight(vacantseats, week, year) 
 VALUES (in_departure_airport_code, in_arrival_airport_code, in_year, in_routeprice);
 END; //
 
@@ -162,8 +175,10 @@ SELECT * from weekdayfactor;
 
 SELECT * from airport;
 call addDestination('BAU', 'Baubau Airport', 'Indonesia');
+call addDestination('ARN', 'Stockholm Skavsta', 'Sweden');
 SELECT * from airport;
 
 SELECT * from froute;
 call addRoute('BAU', 'ARN', 2018, 3600);
 SELECT * from froute;
+
