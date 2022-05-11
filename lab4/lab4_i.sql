@@ -33,11 +33,13 @@ CREATE TABLE contact
     ENGINE=InnoDB;
     
 CREATE TABLE weeklyschedule
-    (year INT,
-    day VARCHAR(10),
+    (year INT NOT NULL,
+    day VARCHAR(10) NOT NULL,
     routeid INT,
-    dep_time,
-    CONSTRAINT pk_weekly_schedule PRIMARY KEY(year))
+    dep_time TIME,
+    CONSTRAINT pk_weekly_schedule PRIMARY KEY(routeid))
+    -- Primary key Day from wdf is pointing here thus
+    -- day needs to be unique.
     -- CONSTRAINT uniq_day UNIQUE(day)) 
     ENGINE=InnoDB;
     
@@ -66,7 +68,7 @@ CREATE TABLE airport
 
 CREATE TABLE flight
     (flightnr INT NOT NULL AUTO_INCREMENT,
-    vacantseats INT,
+    vacantseats INT DEFAULT 40,
     week INT,
     year INT,
     CONSTRAINT pk_flight PRIMARY KEY(flightnr)) 
@@ -125,60 +127,126 @@ DROP PROCEDURE IF EXISTS addYear;
 DROP PROCEDURE IF EXISTS addDay;
 DROP PROCEDURE IF EXISTS addDestination;
 DROP PROCEDURE IF EXISTS addRoute;
+DROP PROCEDURE IF EXISTS getRouteID;
+DROP PROCEDURE IF EXISTS addFlight;
 
 
 DELIMITER // 
 CREATE PROCEDURE addYear(IN p_year INT, IN p_factor DOUBLE)
 BEGIN
-INSERT INTO profitfactor(year, profitfactor) VALUES (p_year, p_factor);
+  INSERT INTO profitfactor(year, profitfactor) VALUES (p_year, p_factor);
 END; //
+
 
 CREATE PROCEDURE addDay(IN in_year INT, IN in_day VARCHAR(10), IN in_factor DOUBLE)
 BEGIN
-INSERT INTO weekdayfactor(year, day, weekdayfactor) VALUES (in_year, in_day, in_factor);
+  INSERT INTO weekdayfactor(year, day, weekdayfactor) VALUES (in_year, in_day, in_factor);
 END; //
+
 
 CREATE PROCEDURE addDestination(IN in_airport_code VARCHAR(3), IN in_name VARCHAR(30), IN in_country VARCHAR(30))
 BEGIN
-INSERT INTO airport(code, name, country) VALUES (in_airport_code, in_name, in_country);
+  INSERT INTO airport(code, name, country) VALUES (in_airport_code, in_name, in_country);
 END; //
+
 
 CREATE PROCEDURE addRoute(IN in_departure_airport_code VARCHAR(3), IN in_arrival_airport_code VARCHAR(3), IN in_year INT, IN in_routeprice INT)
 BEGIN
-INSERT INTO froute(fromcode, tocode, year, routeprice) 
-VALUES (in_departure_airport_code, in_arrival_airport_code, in_year, in_routeprice);
+  INSERT INTO froute(fromcode, tocode, year, routeprice) 
+  VALUES (in_departure_airport_code, in_arrival_airport_code, in_year, in_routeprice);
 END; //
 
--- 
 
-CREATE PROCEDURE addFlight(IN in_departure_airport_code VARCHAR(3), IN in_arrival_airport_code VARCHAR(3), IN in_year INT, IN in_day INT, IN in_dep_time TIME)
+CREATE PROCEDURE getRouteID(OUT route_id INT, IN in_departure_airport_code VARCHAR(3), IN in_arrival_airport_code VARCHAR(3), IN in_year INT)
 BEGIN
--- Insert into weeklyschedule
-INSERT INTO weeklyschedule()
--- Insert into flight
+  SELECT routeid INTO route_id
+  FROM froute 
+  WHERE (fromcode=in_departure_airport_code) AND (tocode=in_arrival_airport_code) AND (year=in_year);
+END; //
 
-INSERT INTO flight(vacantseats, week, year) 
-VALUES (in_departure_airport_code, in_arrival_airport_code, in_year, in_routeprice);
+
+CREATE PROCEDURE addFlight(IN in_departure_airport_code VARCHAR(3), IN in_arrival_airport_code VARCHAR(3), IN in_year INT, IN in_day VARCHAR(10), IN in_dep_time TIME)
+BEGIN
+  DECLARE routeID INT DEFAULT -1;
+  DECLARE week_cntr INT DEFAULT 1;
+  -- Insert dep and arr airport INTO froute - do nothing on duplicate
+  -- INSERT INTO froute(fromcode, tocode, year) 
+  -- VALUES (in_departure_airport_code, in_arrival_airport_code, in_year)
+  -- ON DUPLICATE KEY UPDATE froute.fromcode=froute.fromcode;
+
+  
+  CALL getRouteID(routeID, in_departure_airport_code, in_arrival_airport_code, in_year);
+  -- SELECT routeID as 'debug routeID';
+  -- Insert into weeklyschedule
+  INSERT INTO weeklyschedule(year, day, routeid, dep_time)
+  VALUES (in_year, in_day, routeID, in_dep_time);-- How to add same routeid as above?
+  -- Weekly Schedule attrs:
+  -- year INT NOT NULL,
+  --     day VARCHAR(10) NOT NULL,
+  --     routeid INT,
+  --     dep_time TIME,
+
+
+  -- Insert into flight for every week in a year (52 times)
+  
+  WHILE week_cntr <= 52 DO
+    INSERT INTO flight(week, year) VALUES (week_cntr, in_year);
+    SET week_cntr = week_cntr + 1;
+  END WHILE;
+
 END; //
 
 DELIMITER ;
 
  
 
-SELECT * from profitfactor;
-call addYear(2000, 2.4);
-SELECT * from profitfactor;
+-- SELECT * from profitfactor;
+-- call addYear(2000, 2.4);
+-- SELECT * from profitfactor;
 
-SELECT * from weekdayfactor;
-call addDay(2000, 'Tue', 5.3);
-SELECT * from weekdayfactor;
+-- SELECT * from weekdayfactor;
+-- call addDay(2000, 'Sunday', 5.3);
+-- SELECT * from weekdayfactor;
 
-SELECT * from airport;
-call addDestination('BAU', 'Baubau Airport', 'Indonesia');
-call addDestination('ARN', 'Stockholm Skavsta', 'Sweden');
-SELECT * from airport;
+-- SELECT * from airport;
+-- call addDestination('BAU', 'Baubau Airport', 'Indonesia');
+-- call addDestination('ARN', 'Stockholm Skavsta', 'Sweden');
+-- SELECT * from airport;
 
-SELECT * from froute;
-call addRoute('BAU', 'ARN', 2018, 3600);
-SELECT * from froute;
+-- SELECT * from froute;
+-- call addRoute('BAU', 'ARN', 2018, 3600);
+-- SELECT * from froute;
 
+-- CALL addFlight("ARN","BAU", 2000, "Sunday", "12:00:00");
+-- SELECT * from froute;
+-- SELECT * from weeklyschedule;
+-- SELECT * from flight;
+
+
+-- SELECT "Trying to add 2 years" AS "Message";
+-- CALL addYear(2010, 2.3);
+-- CALL addYear(2011, 2.5);
+-- SELECT "Trying to add 4 days" AS "Message";
+-- CALL addDay(2010,"Monday",1);
+-- CALL addDay(2010,"Tuesday",1.5);
+-- CALL addDay(2011,"Saturday",2);
+-- CALL addDay(2011,"Sunday",2.5);
+-- SELECT "Trying to add 2 destinations" AS "Message";
+-- CALL addDestination("MIT","Minas Tirith","Mordor");
+-- CALL addDestination("HOB","Hobbiton","The Shire");
+-- SELECT "Trying to add 4 routes" AS "Message";
+-- CALL addRoute("MIT","HOB",2010,2000);
+-- CALL addRoute("HOB","MIT",2010,1600);
+-- CALL addRoute("MIT","HOB",2011,2100);
+-- CALL addRoute("HOB","MIT",2011,1500);
+
+
+-- SELECT "Trying to add 4 weeklyschedule flights" AS "Message";
+
+-- CALL addFlight("MIT","HOB", 2010, "Monday", "09:00:00");
+-- CALL addFlight("HOB","MIT", 2010, "Tuesday", "10:00:00");
+-- CALL addFlight("MIT","HOB", 2011, "Sunday", "11:00:00");
+-- CALL addFlight("HOB","MIT", 2011, "Sunday", "12:00:00");
+-- SELECT * from froute;
+-- SELECT * from weeklyschedule;
+-- SELECT * from flight;
