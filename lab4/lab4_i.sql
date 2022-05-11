@@ -184,6 +184,7 @@ DELIMITER ;
 SELECT 'Creating functions for ass4' AS 'Message';
 
 DROP FUNCTION IF EXISTS calculateFreeSeats;
+DROP FUNCTION IF EXISTS calculatePrice;
 
 DELIMITER //
 CREATE FUNCTION calculateFreeSeats(flightnumber INT)
@@ -196,6 +197,32 @@ BEGIN
   WHERE flight.flightnr=flightnumber;
 
   RETURN freeseats;
+END; //
+
+-- The flight pricing depends on
+-- • the start and stop destination which (together) has a route price,
+-- • the day of the week. BrianAir has the same weekday pricing factor for all
+-- flights regardless of destination, e.g. factor 4.7 on Fridays and Sundays,
+-- factor 1 on Tuesdays, etc.
+-- • the number of already confirmed/booked passengers on the flight. The
+-- more passengers are booked the more expensive the flight becomes.
+-- • what profit BrianAir wants to make on the flights. This factor is the same
+-- for all flights.
+
+-- Pricing factors (including profitfactor) and route prices can change when the
+-- schedule changes, once per year!
+
+CREATE FUNCTION calculatePrice(flightnumber INT)
+RETURNS DOUBLE
+BEGIN
+  DECLARE vacantseats INT DEFAULT 0;
+  DECLARE price INT DEFAULT 0.0;
+  
+  -- FIND OUT 
+
+  SELECT calculateFreeSeats(flightnumber) INTO vacantseats;
+
+  RETURN price;
 END; //
 
 DELIMITER ;
