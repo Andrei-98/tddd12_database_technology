@@ -182,12 +182,14 @@ END; //
 
 DELIMITER ;
 
+
 SELECT 'Creating functions for ass4' AS 'Message';
 
 DROP FUNCTION IF EXISTS calculateFreeSeats;
 DROP FUNCTION IF EXISTS calculatePrice;
 DROP FUNCTION IF EXISTS getWeekdayFactor;
 DROP FUNCTION IF EXISTS getProfitFactor;
+DROP FUNCTION IF EXISTS getRouteIdFromFlight;
 
 DELIMITER //
 CREATE FUNCTION calculateFreeSeats(flightnumber INT)
@@ -222,6 +224,7 @@ BEGIN
   RETURN wdFactor;
 END; //
 
+
 CREATE FUNCTION getProfitFactor(year INT)
 RETURNS DOUBLE
 BEGIN
@@ -232,6 +235,19 @@ BEGIN
   WHERE (pf.year=year);
 
   RETURN profitFactor;
+END;//
+
+
+CREATE FUNCTION getRouteIdFromFlight(flightnumber INT)
+RETURNS INT
+BEGIN
+  DECLARE routeId INT;
+  
+  SELECT f.routeid INTO routeId
+  FROM flight AS f
+  WHERE f.flightnr=flightnumber;
+
+  RETURN routeId;
 END;//
 
 -- The flight pricing depends on
@@ -247,6 +263,8 @@ END;//
 -- Pricing factors (including profitfactor) and route prices can change when the
 -- schedule changes, once per year!
 
+
+
 CREATE FUNCTION calculatePrice(flightnumber INT)
 RETURNS DOUBLE
 BEGIN
@@ -255,19 +273,19 @@ BEGIN
   DECLARE routePrice DOUBLE DEFAULT 0.0;
   DECLARE wantedDay VARCHAR(10);
   DECLARE wantedYear INT;
-  DECLARE dayFactor DOUBLE DEFAULT 1.0;
+  DECLARE dayFactor DOUBLE DEFAULT 1.0;	   
 
-  -- FIND OUT ROUTE PRICE
+  -- FIND OUT ROUTE PRICE - WORKS
   SELECT routeprice INTO routePrice
   FROM froute
-  WHERE froute.routeid=flightnumber; -- Must add routeId
-  
+  WHERE froute.routeid=getRouteIdFromFlight(flightnumber);
+
   -- FIND OUT DAY - WORKS
   SELECT ws.day INTO wantedDay
   FROM weeklyschedule AS ws
   WHERE ws.routeid=flightnumber;
 
--- FIND OUT YEAR
+  -- FIND OUT YEAR
   SELECT ws.year INTO wantedYear
   FROM weeklyschedule AS ws
   WHERE ws.routeid=flightnumber;
@@ -278,7 +296,8 @@ BEGIN
   -- SET factor according to weekday and year
   SELECT getWeekdayFactor(wantedDay, wantedYear) INTO dayFactor;
 
-  SET totalPrice=routePrice*dayFactor*(40-vacantseats+1)/40*getProfitFactor(wantedYear);
+  -- SET totalPrice=routePrice*dayFactor*(40-vacantseats+1)/40*getProfitFactor(wantedYear);
+  SELECT routePrice INTO totalPrice;
   
   RETURN totalPrice;
 END; //
@@ -319,5 +338,10 @@ SELECT calculatePrice(34) AS 'Day: Sunday';
 SELECT calculatePrice(108) AS 'Day: Tuesday';
 SELECT getWeekdayFactor('Tuesday',2010) AS 'Factor: 1.5';
 SELECT getWeekdayFactor('Saturday',2011) AS 'Factor: 2';
-SELECT calculatePrice(108) AS '1600';
-SELECT calculatePrice(1) AS '2000';
+SELECT calculatePrice(108) AS 'Start: 1600';
+SELECT calculatePrice(207) AS 'Start: 1500';
+SELECT calculatePrice(1) AS 'Start: 2000';
+SELECT getRouteIdFromFlight(190) AS 'should be 4';
+SELECT getRouteIdFromFlight(90) AS 'should be 2';
+
+
