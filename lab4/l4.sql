@@ -183,6 +183,8 @@ SELECT 'Creating functions for ass4' AS 'Message';
 
 DROP FUNCTION IF EXISTS calculateFreeSeats;
 DROP FUNCTION IF EXISTS calculatePrice;
+DROP FUNCTION IF EXISTS getWeekdayFactor;
+DROP FUNCTION IF EXISTS getProfitFactor;
 
 DELIMITER //
 CREATE FUNCTION calculateFreeSeats(flightnumber INT)
@@ -195,8 +197,39 @@ BEGIN
   WHERE flight.flightnr=flightnumber;
 
   RETURN freeseats;
- 
 END; //
+
+
+CREATE FUNCTION getWeekdayFactor(day VARCHAR(10), year INT)
+RETURNS DOUBLE
+BEGIN
+  DECLARE wdFactor DOUBLE;
+
+  SELECT wdf.weekdayfactor INTO wdFactor
+  FROM weekdayfactor AS wdf
+  WHERE (wdf.day=day) AND (wdf.year=year);
+
+  SELECT
+  CASE wdFactor
+    WHEN wdFactor=NULL THEN 1.0 -- Should return NULL if not in the table?
+    ELSE wdFactor
+  END
+  INTO wdFactor;
+
+  RETURN wdFactor;
+END; //
+
+CREATE FUNCTION getProfitFactor(year INT)
+RETURNS DOUBLE
+BEGIN
+  DECLARE profitFactor DOUBLE;
+  
+  SELECT pf.profitfactor INTO profitFactor
+  FROM profitfactor AS pf
+  WHERE (pf.year=year);
+
+  RETURN profitFactor;
+END;//
 
 -- The flight pricing depends on
 -- • the start and stop destination which (together) has a route price,
@@ -215,16 +248,36 @@ CREATE FUNCTION calculatePrice(flightnumber INT)
 RETURNS DOUBLE
 BEGIN
   DECLARE vacantseats INT DEFAULT 0;
-  DECLARE price DOUBLE DEFAULT 0.0;
-  
+  DECLARE totalPrice DOUBLE DEFAULT 0.0;
+  DECLARE routePrice DOUBLE DEFAULT 0.0;
+  DECLARE wantedDay VARCHAR(10);
+  DECLARE wantedYear INT;
+  DECLARE dayFactor DOUBLE DEFAULT 1.0;
+
   -- FIND OUT ROUTE PRICE
+  SELECT routeprice INTO routePrice
+  FROM froute
+  WHERE froute.routeid=flightnumber; -- Must add routeId
+  
+  -- FIND OUT DAY - WORKS
+  SELECT ws.day INTO wantedDay
+  FROM weeklyschedule AS ws
+  WHERE ws.routeid=flightnumber;
 
-  -- FIND OUT DAY
+-- FIND OUT YEAR
+  SELECT ws.year INTO wantedYear
+  FROM weeklyschedule AS ws
+  WHERE ws.routeid=flightnumber;
 
-  -- FIND OUT 
+  -- FIND OUT vacant seats - WORKS
   SELECT calculateFreeSeats(flightnumber) INTO vacantseats;
 
-  RETURN price;
+  -- SET factor according to weekday and year
+  SELECT getWeekdayFactor(wantedDay, wantedYear) INTO dayFactor;
+
+  SET totalPrice=routePrice*dayFactor*(40-vacantseats+1)/40*getProfitFactor(wantedYear);
+  
+  RETURN totalPrice;
 END; //
 
 DELIMITER ;
@@ -257,4 +310,11 @@ CALL addFlight("HOB","MIT", 2011, "Sunday", "12:00:00");
 -- QUESION 3 TEST END #######################################
 -- QUESION 4 TEST START #######################################
 
+-- Function tests
 SELECT calculateFreeSeats(208) AS '4 a) Free seats function';
+SELECT calculatePrice(34) AS 'Day: Sunday';
+SELECT calculatePrice(108) AS 'Day: Tuesday';
+SELECT getWeekdayFactor('Tuesday',2010) AS 'Factor: 1.5';
+SELECT getWeekdayFactor('Saturday',2011) AS 'Factor: 2';
+SELECT calculatePrice(108) AS '1600';
+SELECT calculatePrice(1) AS '2000';
