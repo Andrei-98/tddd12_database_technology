@@ -69,6 +69,7 @@ CREATE TABLE flight
     vacantseats INT DEFAULT 40,
     week INT,
     year INT,
+    routeid INT NOT NULL,
     CONSTRAINT pk_flight PRIMARY KEY(flightnr)) 
     ENGINE=InnoDB;
 
@@ -111,6 +112,7 @@ ALTER TABLE weeklyschedule ADD CONSTRAINT fk_ws_wf FOREIGN KEY (day) REFERENCES 
 ALTER TABLE froute ADD CONSTRAINT fk_froute_airport_from FOREIGN KEY (fromcode) REFERENCES airport(code);
 ALTER TABLE froute ADD CONSTRAINT fk_froute_airport_to FOREIGN KEY (tocode) REFERENCES airport(code);
 ALTER TABLE flight ADD CONSTRAINT fk_flight_ws FOREIGN KEY (year) REFERENCES weeklyschedule(year);
+ALTER TABLE flight ADD CONSTRAINT fk_flight_froute FOREIGN KEY (routeid) REFERENCES froute(routeid);
 ALTER TABLE reservation ADD CONSTRAINT fk_reservation_flight FOREIGN KEY (flightnr) REFERENCES flight(flightnr);
 ALTER TABLE reservation ADD CONSTRAINT fk_reservation_contact FOREIGN KEY (cpassnr) REFERENCES contact(cpassnr);
 ALTER TABLE booking ADD CONSTRAINT fk_booking_reservation FOREIGN KEY (bookingid) REFERENCES reservation(rid);
@@ -167,11 +169,12 @@ BEGIN
   DECLARE week_cntr INT DEFAULT 1;
   
   CALL getRouteID(routeID, in_departure_airport_code, in_arrival_airport_code, in_year);
+  
   INSERT INTO weeklyschedule(year, day, routeid, dep_time)
   VALUES (in_year, in_day, routeID, in_dep_time);
 
   WHILE week_cntr <= 52 DO
-    INSERT INTO flight(week, year) VALUES (week_cntr, in_year);
+    INSERT INTO flight(week, year, routeid) VALUES (week_cntr, in_year, routeID);
     SET week_cntr = week_cntr + 1;
   END WHILE;
 
