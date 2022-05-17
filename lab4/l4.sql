@@ -262,12 +262,11 @@ END;//
 CREATE FUNCTION getPriceFromFlightnr(flightnumber INT)
 RETURNS DOUBLE
 BEGIN
-  DECLARE flightRouteId INT;
   DECLARE routePrice DOUBLE;
 
   SELECT fr.routeprice INTO routePrice
   FROM froute AS fr
-  WHERE fr.routeid=getRouteIdFromFlightnr(flightRouteId);
+  WHERE fr.routeid=getRouteIdFromFlightnr(flightnumber);
 
   RETURN routePrice; 
 END;//
@@ -364,9 +363,9 @@ SELECT calculatePrice(34) AS 'Day: Sunday';
 SELECT calculatePrice(108) AS 'Day: Tuesday';
 SELECT getWeekdayFactor('Tuesday',2010) AS 'Factor: 1.5';
 SELECT getWeekdayFactor('Saturday',2011) AS 'Factor: 2';
-SELECT calculatePrice(108) AS 'Start: 1600';
+SELECT calculatePrice(101) AS 'Start: 1600';
 
-SELECT getPriceFromFlightnr(108) AS 'getPrice Start: 1600';
+SELECT getPriceFromFlightnr(103) AS 'getPrice Start: 1600';
 
 SELECT calculatePrice(207) AS 'Start: 1500';
 SELECT calculatePrice(50) AS 'Start: 2000';
