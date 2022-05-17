@@ -258,7 +258,6 @@ BEGIN
 END;//
 
 
--- TODO doesn't work! 17/5
 CREATE FUNCTION getPriceFromFlightnr(flightnumber INT)
 RETURNS DOUBLE
 BEGIN
@@ -284,7 +283,7 @@ END;//
 -- Pricing factors (including profitfactor) and route prices can change when the
 -- schedule changes, once per year!
 
-CREATE FUNCTION calculatePrice(flightnumber INT)
+CREATE FUNCTION calculatePrice(flightnumber INT) -- Still TODO
 RETURNS DOUBLE
 -- RETURNS VARCHAR(10)
 -- RETURNS INT
@@ -297,11 +296,7 @@ BEGIN
   DECLARE dayFactor DOUBLE DEFAULT 1.0;	   
 
   -- FIND OUT ROUTE PRICE - WORKS
-  -- SELECT getPriceFromFlightnr(flightnumber) INTO routePrice;
-
-RETURN getPriceFromFlightnr(flightnumber);
-
---  RETURN routePrice;
+  SET routePrice=getPriceFromFlightnr(flightnumber);
   
   -- FIND OUT DAY - WORKS
   SELECT ws.day INTO wantedDay
@@ -321,10 +316,10 @@ RETURN getPriceFromFlightnr(flightnumber);
   -- SET factor according to weekday and year
   SELECT getWeekdayFactor(wantedDay, wantedYear) INTO dayFactor;
 
-  -- SET totalPrice=routePrice*dayFactor*(40-vacantseats+1)/40*getProfitFactor(wantedYear);
-  -- SELECT routePrice INTO totalPrice;
+  -- May need to check this one once more
+  SET totalPrice=routePrice*dayFactor*(40-vacantseats+1)/40*getProfitFactor(wantedYear); 
   
-  
+  RETURN totalPrice;
 END; //
 
 DELIMITER ;
