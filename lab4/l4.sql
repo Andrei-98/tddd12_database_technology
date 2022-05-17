@@ -1,3 +1,5 @@
+use brianair;
+
 --Drop all tables as necessary
 --DROP TABLE IF EXISTS table_name” resp. “DROP PROCEDURE IF EXISTS proc_name
 SET FOREIGN_KEY_CHECKS=0;
@@ -128,6 +130,7 @@ DROP PROCEDURE IF EXISTS addDestination;
 DROP PROCEDURE IF EXISTS addRoute;
 DROP PROCEDURE IF EXISTS getRouteID;
 DROP PROCEDURE IF EXISTS addFlight;
+DROP PROCEDURE IF EXISTS getPriceFromFlightnr;
 
 DELIMITER // 
 CREATE PROCEDURE addYear(IN p_year INT, IN p_factor DOUBLE)
@@ -180,6 +183,9 @@ BEGIN
 
 END; //
 
+
+
+
 DELIMITER ;
 
 
@@ -189,7 +195,8 @@ DROP FUNCTION IF EXISTS calculateFreeSeats;
 DROP FUNCTION IF EXISTS calculatePrice;
 DROP FUNCTION IF EXISTS getWeekdayFactor;
 DROP FUNCTION IF EXISTS getProfitFactor;
-DROP FUNCTION IF EXISTS getRouteIdFromFlight;
+DROP FUNCTION IF EXISTS getRouteIdFromFlightnr;
+DROP FUNCTION IF EXISTS getPriceFromFlightnr;
 
 DELIMITER //
 CREATE FUNCTION calculateFreeSeats(flightnumber INT)
@@ -238,16 +245,31 @@ BEGIN
 END;//
 
 
-CREATE FUNCTION getRouteIdFromFlight(flightnumber INT)
+CREATE FUNCTION getRouteIdFromFlightnr(flightnumber INT)
 RETURNS INT
 BEGIN
-  DECLARE routeId INT;
-  
-  SELECT f.routeid INTO routeId
+  DECLARE flightRouteId INT;
+
+  SELECT f.routeid INTO flightRouteId
   FROM flight AS f
   WHERE f.flightnr=flightnumber;
 
-  RETURN routeId;
+  RETURN flightRouteId; 
+END;//
+
+
+-- TODO doesn't work! 17/5
+CREATE FUNCTION getPriceFromFlightnr(flightnumber INT)
+RETURNS DOUBLE
+BEGIN
+  DECLARE flightRouteId INT;
+  DECLARE routePrice DOUBLE;
+
+  SELECT fr.routeprice INTO routePrice
+  FROM froute AS fr
+  WHERE fr.routeid=getRouteIdFromFlightnr(flightRouteId);
+
+  RETURN routePrice; 
 END;//
 
 -- The flight pricing depends on
@@ -263,10 +285,10 @@ END;//
 -- Pricing factors (including profitfactor) and route prices can change when the
 -- schedule changes, once per year!
 
-
-
 CREATE FUNCTION calculatePrice(flightnumber INT)
 RETURNS DOUBLE
+-- RETURNS VARCHAR(10)
+-- RETURNS INT
 BEGIN
   DECLARE vacantseats INT DEFAULT 0;
   DECLARE totalPrice DOUBLE DEFAULT 0.0;
@@ -276,19 +298,23 @@ BEGIN
   DECLARE dayFactor DOUBLE DEFAULT 1.0;	   
 
   -- FIND OUT ROUTE PRICE - WORKS
-  SELECT routeprice INTO routePrice
-  FROM froute
-  WHERE froute.routeid=getRouteIdFromFlight(flightnumber);
+  -- SELECT getPriceFromFlightnr(flightnumber) INTO routePrice;
 
+RETURN getPriceFromFlightnr(flightnumber);
+
+--  RETURN routePrice;
+  
   -- FIND OUT DAY - WORKS
   SELECT ws.day INTO wantedDay
   FROM weeklyschedule AS ws
-  WHERE ws.routeid=flightnumber;
+  WHERE ws.routeid=getRouteIdFromFlightnr(flightnumber);  
 
-  -- FIND OUT YEAR
+  -- FIND OUT YEAR - WORKS
   SELECT ws.year INTO wantedYear
   FROM weeklyschedule AS ws
-  WHERE ws.routeid=flightnumber;
+  WHERE ws.routeid=getRouteIdFromFlightnr(flightnumber);
+
+  -- RETURN wantedYear;
 
   -- FIND OUT vacant seats - WORKS
   SELECT calculateFreeSeats(flightnumber) INTO vacantseats;
@@ -297,9 +323,9 @@ BEGIN
   SELECT getWeekdayFactor(wantedDay, wantedYear) INTO dayFactor;
 
   -- SET totalPrice=routePrice*dayFactor*(40-vacantseats+1)/40*getProfitFactor(wantedYear);
-  SELECT routePrice INTO totalPrice;
+  -- SELECT routePrice INTO totalPrice;
   
-  RETURN totalPrice;
+  
 END; //
 
 DELIMITER ;
@@ -339,8 +365,11 @@ SELECT calculatePrice(108) AS 'Day: Tuesday';
 SELECT getWeekdayFactor('Tuesday',2010) AS 'Factor: 1.5';
 SELECT getWeekdayFactor('Saturday',2011) AS 'Factor: 2';
 SELECT calculatePrice(108) AS 'Start: 1600';
+
+SELECT getPriceFromFlightnr(108) AS 'getPrice Start: 1600';
+
 SELECT calculatePrice(207) AS 'Start: 1500';
-SELECT calculatePrice(1) AS 'Start: 2000';
+SELECT calculatePrice(50) AS 'Start: 2000';
 SELECT getRouteIdFromFlight(190) AS 'should be 4';
 SELECT getRouteIdFromFlight(90) AS 'should be 2';
 
