@@ -135,19 +135,22 @@ DROP PROCEDURE IF EXISTS getPriceFromFlightnr;
 DELIMITER // 
 CREATE PROCEDURE addYear(IN p_year INT, IN p_factor DOUBLE)
 BEGIN
-  INSERT INTO profitfactor(year, profitfactor) VALUES (p_year, p_factor);
+  INSERT INTO profitfactor(year, profitfactor)
+  VALUES (p_year, p_factor);
 END; //
 
 
 CREATE PROCEDURE addDay(IN in_year INT, IN in_day VARCHAR(10), IN in_factor DOUBLE)
 BEGIN
-  INSERT INTO weekdayfactor(year, day, weekdayfactor) VALUES (in_year, in_day, in_factor);
+  INSERT INTO weekdayfactor(year, day, weekdayfactor)
+  VALUES (in_year, in_day, in_factor);
 END; //
 
 
 CREATE PROCEDURE addDestination(IN in_airport_code VARCHAR(3), IN in_name VARCHAR(30), IN in_country VARCHAR(30))
 BEGIN
-  INSERT INTO airport(code, name, country) VALUES (in_airport_code, in_name, in_country);
+  INSERT INTO airport(code, name, country)
+  VALUES (in_airport_code, in_name, in_country);
 END; //
 
 
@@ -162,7 +165,9 @@ CREATE PROCEDURE getRouteID(OUT route_id INT, IN in_departure_airport_code VARCH
 BEGIN
   SELECT routeid INTO route_id
   FROM froute 
-  WHERE (fromcode=in_departure_airport_code) AND (tocode=in_arrival_airport_code) AND (year=in_year);
+  WHERE (fromcode=in_departure_airport_code)
+  AND (tocode=in_arrival_airport_code)
+  AND (year=in_year);
 END; //
 
 
@@ -177,7 +182,8 @@ BEGIN
   VALUES (in_year, in_day, routeID, in_dep_time);
 
   WHILE week_cntr <= 52 DO
-    INSERT INTO flight(week, year, routeid) VALUES (week_cntr, in_year, routeID);
+    INSERT INTO flight(week, year, routeid)
+    VALUES (week_cntr, in_year, routeID);
     SET week_cntr = week_cntr + 1;
   END WHILE;
 
@@ -317,9 +323,31 @@ BEGIN
   SELECT getWeekdayFactor(wantedDay, wantedYear) INTO dayFactor;
 
   -- May need to check this one once more
-  SET totalPrice=routePrice*dayFactor*(40-vacantseats+1)/40*getProfitFactor(wantedYear); 
+  SET totalPrice=round(routePrice*dayFactor*(40-vacantseats+1)/40*getProfitFactor(wantedYear), 0); 
   
   RETURN totalPrice;
+END; //
+
+
+
+-- Question 5 - Create trigger to issue unique ticket number for paid reservation
+DROP PROCEDURE IF EXISTS addTicket;
+DROP TRIGGER IF EXISTS ticketNrGen;
+
+
+CREATE PROCEDURE addTicket(IN bookingID INT, IN passNbr INT, IN ticketNbr INT)
+BEGIN
+  INSERT INTO ticket(passnr, ticketnr, bookingid)
+  VALUES (passNbr, ticketNbr, bookingID)
+END; //
+
+
+CREATE TRIGGER ticketNrGen
+ON ticket
+AFTER INSERT ON booking
+NOT FOR REPLICATION
+BEGIN
+
 END; //
 
 DELIMITER ;
@@ -363,6 +391,7 @@ SELECT calculatePrice(101) AS 'Start: 1600';
 SELECT getPriceFromFlightnr(103) AS 'getPrice Start: 1600';
 
 SELECT calculatePrice(207) AS 'Start: 1500';
+
 SELECT calculatePrice(50) AS 'Start: 2000';
 SELECT getRouteIdFromFlight(190) AS 'should be 4';
 SELECT getRouteIdFromFlight(90) AS 'should be 2';
