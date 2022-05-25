@@ -407,33 +407,57 @@ BEGIN
                   in_year);
 
   -- Get flightnumber from the info we have as input.
-  SET output_reservation_number = getFlightNr(in_week, in_year, route_id);
+  SET flightnumber = getFlightNr(in_week, in_year, routeID);
   SET vacantSeats = calculateFreeSeats(flightnumber);
-END //
+  IF ( vacantSeats >= in_number_of_passengers ) THEN
+    INSERT INTO reservation(flightnr)
+    VALUE (flightnumber);
+    SELECT last_insert_id() INTO output_reservation_number;
+  END IF;
+
+
+END; //
 DELIMITER ;
--- ##############################################################
--- TEST lines for Question3.sql
-SELECT "Trying to add 2 years" AS "Message";
+
+SELECT "Testing answer for 6, handling reservations and bookings" as "Message";
+SELECT "Filling database with flights" as "Message";
+/*Fill the database with data */
 CALL addYear(2010, 2.3);
-CALL addYear(2011, 2.5);
-SELECT "Trying to add 4 days" AS "Message";
 CALL addDay(2010,"Monday",1);
-CALL addDay(2010,"Tuesday",1.5);
-CALL addDay(2011,"Saturday",2);
-CALL addDay(2011,"Sunday",2.5);
-SELECT "Trying to add 2 destinations" AS "Message";
 CALL addDestination("MIT","Minas Tirith","Mordor");
 CALL addDestination("HOB","Hobbiton","The Shire");
-SELECT "Trying to add 4 routes" AS "Message";
 CALL addRoute("MIT","HOB",2010,2000);
-CALL addRoute("HOB","MIT",2010,1600);
-CALL addRoute("MIT","HOB",2011,2100);
-CALL addRoute("HOB","MIT",2011,1500);
-SELECT "Trying to add 4 weeklyschedule flights" AS "Message";
 CALL addFlight("MIT","HOB", 2010, "Monday", "09:00:00");
-CALL addFlight("HOB","MIT", 2010, "Tuesday", "10:00:00");
-CALL addFlight("MIT","HOB", 2011, "Sunday", "11:00:00");
-CALL addFlight("HOB","MIT", 2011, "Sunday", "12:00:00");
+CALL addFlight("MIT","HOB", 2010, "Monday", "21:00:00");
+
+SELECT "Test 1: Adding a reservation, expected OK result" as "Message";
+CALL addReservation("MIT","HOB",2010,1,"Monday","09:00:00",3,@a);
+SELECT "Check that the reservation number is returned properly (any number will do):" AS "Message",@a AS "Res. number returned"; 
+
+
+-- ##############################################################
+-- TEST lines for Question3.sql
+-- SELECT "Trying to add 2 years" AS "Message";
+-- CALL addYear(2010, 2.3);
+-- CALL addYear(2011, 2.5);
+-- SELECT "Trying to add 4 days" AS "Message";
+-- CALL addDay(2010,"Monday",1);
+-- CALL addDay(2010,"Tuesday",1.5);
+-- CALL addDay(2011,"Saturday",2);
+-- CALL addDay(2011,"Sunday",2.5);
+-- SELECT "Trying to add 2 destinations" AS "Message";
+-- CALL addDestination("MIT","Minas Tirith","Mordor");
+-- CALL addDestination("HOB","Hobbiton","The Shire");
+-- SELECT "Trying to add 4 routes" AS "Message";
+-- CALL addRoute("MIT","HOB",2010,2000);
+-- CALL addRoute("HOB","MIT",2010,1600);
+-- CALL addRoute("MIT","HOB",2011,2100);
+-- CALL addRoute("HOB","MIT",2011,1500);
+-- SELECT "Trying to add 4 weeklyschedule flights" AS "Message";
+-- CALL addFlight("MIT","HOB", 2010, "Monday", "09:00:00");
+-- CALL addFlight("HOB","MIT", 2010, "Tuesday", "10:00:00");
+-- CALL addFlight("MIT","HOB", 2011, "Sunday", "11:00:00");
+-- CALL addFlight("HOB","MIT", 2011, "Sunday", "12:00:00");
 -- SELECT * from froute;
 -- SELECT * from weeklyschedule;
 -- SELECT * from flight;
