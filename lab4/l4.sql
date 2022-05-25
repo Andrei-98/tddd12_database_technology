@@ -133,35 +133,45 @@ DROP PROCEDURE IF EXISTS addFlight;
 DROP PROCEDURE IF EXISTS getPriceFromFlightnr;
 
 DELIMITER // 
-CREATE PROCEDURE addYear(IN p_year INT, IN p_factor DOUBLE)
+CREATE PROCEDURE addYear(IN p_year INT, 
+                         IN p_factor DOUBLE)
 BEGIN
   INSERT INTO profitfactor(year, profitfactor)
   VALUES (p_year, p_factor);
 END; //
 
 
-CREATE PROCEDURE addDay(IN in_year INT, IN in_day VARCHAR(10), IN in_factor DOUBLE)
+CREATE PROCEDURE addDay(IN in_year INT, 
+                        IN in_day VARCHAR(10), 
+                        IN in_factor DOUBLE)
 BEGIN
   INSERT INTO weekdayfactor(year, day, weekdayfactor)
   VALUES (in_year, in_day, in_factor);
 END; //
 
 
-CREATE PROCEDURE addDestination(IN in_airport_code VARCHAR(3), IN in_name VARCHAR(30), IN in_country VARCHAR(30))
+CREATE PROCEDURE addDestination(IN in_airport_code VARCHAR(3), 
+                                IN in_name VARCHAR(30), 
+                                IN in_country VARCHAR(30))
 BEGIN
   INSERT INTO airport(code, name, country)
   VALUES (in_airport_code, in_name, in_country);
 END; //
 
 
-CREATE PROCEDURE addRoute(IN in_departure_airport_code VARCHAR(3), IN in_arrival_airport_code VARCHAR(3), IN in_year INT, IN in_routeprice INT)
+CREATE PROCEDURE addRoute(IN in_departure_airport_code VARCHAR(3), 
+                          IN in_arrival_airport_code VARCHAR(3), 
+                          IN in_year INT, IN in_routeprice INT)
 BEGIN
   INSERT INTO froute(fromcode, tocode, year, routeprice) 
   VALUES (in_departure_airport_code, in_arrival_airport_code, in_year, in_routeprice);
 END; //
 
 
-CREATE PROCEDURE getRouteID(OUT route_id INT, IN in_departure_airport_code VARCHAR(3), IN in_arrival_airport_code VARCHAR(3), IN in_year INT)
+CREATE PROCEDURE getRouteID(OUT route_id INT, 
+                            IN in_departure_airport_code VARCHAR(3), 
+                            IN in_arrival_airport_code VARCHAR(3), 
+                            IN in_year INT)
 BEGIN
   SELECT routeid INTO route_id
   FROM froute 
@@ -171,7 +181,10 @@ BEGIN
 END; //
 
 
-CREATE PROCEDURE addFlight(IN in_departure_airport_code VARCHAR(3), IN in_arrival_airport_code VARCHAR(3), IN in_year INT, IN in_day VARCHAR(10), IN in_dep_time TIME)
+CREATE PROCEDURE addFlight(IN in_departure_airport_code VARCHAR(3), 
+                           IN in_arrival_airport_code VARCHAR(3), 
+                           IN in_year INT, IN in_day VARCHAR(10), 
+                           IN in_dep_time TIME)
 BEGIN
   DECLARE routeID INT DEFAULT -1;
   DECLARE week_cntr INT DEFAULT 1;
@@ -314,8 +327,6 @@ BEGIN
   FROM weeklyschedule AS ws
   WHERE ws.routeid=getRouteIdFromFlightnr(flightnumber);
 
-  -- RETURN wantedYear;
-
   -- FIND OUT vacant seats - WORKS
   SELECT calculateFreeSeats(flightnumber) INTO vacantseats;
 
@@ -328,28 +339,77 @@ BEGIN
   RETURN totalPrice;
 END; //
 
-
+DELIMITER ;
 
 -- Question 5 - Create trigger to issue unique ticket number for paid reservation
 DROP PROCEDURE IF EXISTS addTicket;
 DROP TRIGGER IF EXISTS ticketNrGen;
 
-
+DELIMITER //
 CREATE PROCEDURE addTicket(IN bookingID INT, IN passNbr INT, IN ticketNbr INT)
 BEGIN
   INSERT INTO ticket(passnr, ticketnr, bookingid)
-  VALUES (passNbr, ticketNbr, bookingID)
+  VALUES (passNbr, ticketNbr, bookingID);
 END; //
 
 
-CREATE TRIGGER ticketNrGen
-ON ticket
-AFTER INSERT ON booking
-NOT FOR REPLICATION
+-- CREATE TRIGGER ticketNrGen
+-- ON ticket
+-- AFTER INSERT ON booking
+-- NOT FOR REPLICATION
+-- BEGIN
+
+-- END; //
+
+DELIMITER ;
+-- ##############################################################
+-- Question 6
+DROP FUNCTION IF EXISTS getFlightNr;
+
+DELIMITER //
+
+CREATE FUNCTION getFlightNr(in_week INT, in_year INT, in_route_id INT)
+RETURNS INT
 BEGIN
+  DECLARE return_flight_nr INT;
+  SELECT flightnr INTO return_flight_nr
+  FROM flight
+  WHERE week=in_week
+    AND year=in_year
+    AND routeid=in_route_id;
 
+  RETURN return_flight_nr;
 END; //
 
+DELIMITER ;
+
+DROP PROCEDURE IF EXISTS getFlightNr;
+DROP PROCEDURE IF EXISTS addReservation;
+
+DELIMITER //
+
+-- Create reservation on specific flight
+CREATE PROCEDURE addReservation(IN in_departure_airport_code VARCHAR(3),
+                                IN in_arrival_airport_code VARCHAR(3),
+                                IN in_year INT,
+                                IN in_week INT,
+                                IN in_day VARCHAR(10),
+                                IN in_time TIME,
+                                IN in_number_of_passengers INT,
+                                OUT output_reservation_number INT)
+BEGIN
+  DECLARE vacantSeats INT;
+  DECLARE routeID INT;
+  DECLARE flightnumber INT;
+  CALL getRouteID(routeID, 
+                  in_departure_airport_code, 
+                  in_arrival_airport_code, 
+                  in_year);
+
+  -- Get flightnumber from the info we have as input.
+  SET output_reservation_number = getFlightNr(in_week, in_year, route_id);
+  SET vacantSeats = calculateFreeSeats(flightnumber);
+END //
 DELIMITER ;
 -- ##############################################################
 -- TEST lines for Question3.sql
