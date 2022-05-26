@@ -455,19 +455,20 @@ BEGIN
   IF (the_wsid IS NULL) THEN
     SELECT "There exist no flight for the given route, date and time"
     AS 'Message';
-  END IF;
-
-  -- -- Get flightnumber from the info we have as input.
-  SET flightnumber = getFlightNr(in_week, in_year, the_wsid);
-
-  SET vacantSeats = calculateFreeSeats(flightnumber);
-  IF ( vacantSeats >= in_number_of_passengers ) THEN
-    INSERT INTO reservation(flightnr)
-    VALUE (flightnumber);
-    SELECT last_insert_id() INTO output_reservation_number;
   ELSE
-    SELECT "There are not enough seats available on the chosen flight"
-    AS 'Message';
+
+    -- -- Get flightnumber from the info we have as input.
+    SET flightnumber = getFlightNr(in_week, in_year, the_wsid);
+
+    SET vacantSeats = calculateFreeSeats(flightnumber);
+    IF ( vacantSeats >= in_number_of_passengers ) THEN
+      INSERT INTO reservation(flightnr)
+      VALUE (flightnumber);
+      SELECT last_insert_id() INTO output_reservation_number;
+    ELSE
+      SELECT "There are not enough seats available on the chosen flight"
+      AS 'Message';
+    END IF;
   END IF;
 END; //
 
@@ -507,30 +508,68 @@ BEGIN
       INSERT INTO passportOnReservation(passport, reservation_nr)
       VALUES (in_passport_number, in_reservation_nr);
     END IF;
+  ELSE    
+    SELECT "The given reservation number does not exist" AS "Message";
   END IF;
-  -- Should probably be a check to see if passenger already on reservation.
-  
-  SELECT "The given reservation number does not exist" AS "Message";
 END //
 
+
+DROP FUNCTION IF EXISTS getContactPassportNr;
+
+CREATE FUNCTION getContactPassportNr(in_phone BIGINT, in_email VARCHAR(30))
+RETURNS INT
+BEGIN
+  DECLARE contactPassNr INT;
+
+  SELECT cpassnr INTO contactPassNr
+  FROM contact
+  WHERE phone=in_phone
+    AND email=in_email;
+
+  RETURN cpassnr;
+END //
+
+
 DROP PROCEDURE IF EXISTS addContact;
+
 CREATE PROCEDURE addContact(IN in_reservation_nr INT, 
                             IN in_passport_number INT,
                             IN in_email VARCHAR(30),
                             IN in_phone BIGINT)
 BEGIN
--- cpassnr INT NOT NULL,
-    -- phone BIGINT,
-    -- email VARCHAR(30)
-  INSERT INTO contact(cpassnr, phone, email)
-  VALUES (in_passport_number, in_phone, in_email);
+  DECLARE isOnReservation INT;
+  DECLARE isValidReservation INT;
+  
+  SELECT rid INTO isValidReservation 
+  FROM reservation 
+  WHERE rid=in_reservation_nr;
 
-  UPDATE reservation
-  SET
-    cpassnr=in_passport_number
-  WHERE
-    rid=in_reservation_nr;
-    
+  IF isValidReservation IS NOT NULL THEN
+
+    -- Check if contact is a passenger on the reservation.
+    SELECT passport INTO isOnReservation
+    FROM passportOnReservation
+    WHERE passport=in_passport_number
+      AND reservation_nr=in_reservation_nr;
+
+    IF isOnReservation IS NOT NULL THEN
+
+      INSERT INTO contact(cpassnr, phone, email)
+      VALUES (in_passport_number, in_phone, in_email);
+
+      UPDATE reservation
+      SET
+        cpassnr=in_passport_number
+      WHERE
+        rid=in_reservation_nr;
+
+    ELSE
+      SELECT "The person is not a passenger of the reservation" AS "Message";
+    END IF;
+
+  ELSE
+    SELECT "The given reservation number does not exist" AS "Message";
+  END IF;
 END //
 
 DELIMITER ;
