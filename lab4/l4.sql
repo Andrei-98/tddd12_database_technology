@@ -530,43 +530,91 @@ BEGIN
 END //
 
 
-DROP PROCEDURE IF EXISTS addContact;
+DROP FUNCTION IF EXISTS getValidReservationId;
 
+CREATE FUNCTION getValidReservationId(in_reservation_nr INT)
+RETURNS INT
+BEGIN
+  DECLARE isValidReservation INT;
+
+  SELECT rid INTO isValidReservation 
+  FROM reservation 
+  WHERE rid=in_reservation_nr;
+
+  RETURN isValidReservation;
+END; //
+
+
+DROP FUNCTION IF EXISTS passportIsPassengerOnReservation;
+
+CREATE FUNCTION passportIsPassengerOnReservation(in_passport_number INT,
+                                                 in_reservation_nr INT)
+RETURNS INT
+BEGIN
+  DECLARE isPassengerOnReservation INT;
+
+  SELECT passport INTO isPassengerOnReservation
+  FROM passportOnReservation
+  WHERE passport=in_passport_number
+    AND reservation_nr=in_reservation_nr;
+
+  RETURN isPassengerOnReservation;
+END; //
+
+
+
+
+
+
+DROP PROCEDURE IF EXISTS addContact;
 CREATE PROCEDURE addContact(IN in_reservation_nr INT, 
                             IN in_passport_number INT,
                             IN in_email VARCHAR(30),
                             IN in_phone BIGINT)
 BEGIN
-  DECLARE isOnReservation INT;
-  DECLARE isValidReservation INT;
+  DECLARE debugMessage VARCHAR(100);
+  DECLARE boolDebug INT DEFAULT 0; 
+
+  IF getValidReservationId(in_reservation_nr) IS NULL THEN
+    SELECT "The given reservation number does not exist" INTO debugMessage;
+    SET boolDebug=1;
+  END IF;
+
+  -- Question 6 TEST 7 will give wrong print since below will always activate
+  -- since we're checking if a person is on an unexisting reservation..
+  IF passportIsPassengerOnReservation(in_passport_number, in_reservation_nr) IS NULL
+  THEN
+    SELECT "The person is not a passenger of the reservation" INTO debugMessage;
+    SET boolDebug=1;
+  ELSE
+    INSERT INTO contact(cpassnr, phone, email)
+    VALUES (in_passport_number, in_phone, in_email);
+
+    UPDATE reservation
+    SET
+      cpassnr=in_passport_number
+    WHERE
+      rid=in_reservation_nr;
+  END IF;
+
+  IF boolDebug=1 THEN
+   SELECT debugMessage AS 'Message';
+  END IF;
   
-  SELECT rid INTO isValidReservation 
-  FROM reservation 
-  WHERE rid=in_reservation_nr;
 
-  IF isValidReservation IS NOT NULL THEN
+END; //
 
-    -- Check if contact is a passenger on the reservation.
-    SELECT passport INTO isOnReservation
-    FROM passportOnReservation
-    WHERE passport=in_passport_number
-      AND reservation_nr=in_reservation_nr;
 
-    IF isOnReservation IS NOT NULL THEN
-
-      INSERT INTO contact(cpassnr, phone, email)
-      VALUES (in_passport_number, in_phone, in_email);
-
-      UPDATE reservation
-      SET
-        cpassnr=in_passport_number
-      WHERE
-        rid=in_reservation_nr;
-
-    ELSE
-      SELECT "The person is not a passenger of the reservation" AS "Message";
-    END IF;
-
+CREATE PROCEDURE addPayment(IN in_reservation_nr INT,
+                            IN in_credit_card_holder_name VARCHAR(30),
+                            IN in_credit_card_nr BIGINT)
+BEGIN
+  
+  IF getValidReservationId(in_reservation_nr) IS NOT NULL THEN
+    SELECT "Reservation number exists" AS "TEMP DEBUG";
+-- If the reservation has a contact and enough free seats on flight:
+      -- add payment information to the reservation and save the amount
+      -- to be drawn from the credit card in the database
   ELSE
     SELECT "The given reservation number does not exist" AS "Message";
   END IF;
