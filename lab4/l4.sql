@@ -17,16 +17,24 @@ DROP TABLE IF EXISTS froute CASCADE; -- named froute instead of route
 DROP TABLE IF EXISTS airport CASCADE;
 DROP TABLE IF EXISTS contact CASCADE;
 DROP TABLE IF EXISTS passenger CASCADE;
+DROP TABLE IF EXISTS passportOnReservation CASCADE;
 SET FOREIGN_KEY_CHECKS=1;
 
 SELECT 'Creating tables' AS 'Message';
 
 CREATE TABLE passenger
     (passnr INT NOT NULL,
-    firstname VARCHAR(30),
-    lastname VARCHAR(30),
+    firstName VARCHAR(30),
+    lastName VARCHAR(30),
     CONSTRAINT pk_passenger PRIMARY KEY(passnr))
     ENGINE=InnoDB;
+
+CREATE TABLE passportOnReservation
+    (passport INT NOT NULL,
+     reservation_nr INT NOT NULL,
+     CONSTRAINT pk_passportOnReservation PRIMARY KEY(passport, reservation_nr)
+    )
+     ENGINE=InnoDB;
 
 CREATE TABLE contact
     (cpassnr INT NOT NULL,
@@ -125,6 +133,8 @@ ALTER TABLE reservation ADD CONSTRAINT fk_reservation_contact FOREIGN KEY (cpass
 ALTER TABLE booking ADD CONSTRAINT fk_booking_reservation FOREIGN KEY (bookingid) REFERENCES reservation(rid);
 ALTER TABLE ticket ADD CONSTRAINT fk_ticket_booking FOREIGN KEY (bookingid) REFERENCES booking(bookingid);
 ALTER TABLE ticket ADD CONSTRAINT fk_ticket_passenger FOREIGN KEY (passnr) REFERENCES passenger(passnr);
+ALTER TABLE passportOnReservation ADD CONSTRAINT fk_rmbp_reservation FOREIGN KEY (reservation_nr) REFERENCES reservation(rid);
+ALTER TABLE passportOnReservation ADD CONSTRAINT fk_rmbp_passenger FOREIGN KEY (passport) REFERENCES passenger(passnr);
 
 -- Procedure creation
 SELECT 'Creating procedures for ass3' AS 'Message';
@@ -446,7 +456,7 @@ BEGIN
     SELECT "There exist no flight for the given route, date and time"
     AS 'Message';
   END IF;
-  
+
   -- -- Get flightnumber from the info we have as input.
   SET flightnumber = getFlightNr(in_week, in_year, the_wsid);
 
@@ -459,9 +469,70 @@ BEGIN
     SELECT "There are not enough seats available on the chosen flight"
     AS 'Message';
   END IF;
-
-
 END; //
+
+
+CREATE PROCEDURE addPassenger(IN in_reservation_nr INT, 
+                              IN in_passport_number INT,
+                              IN in_name VARCHAR(30))
+BEGIN
+  DECLARE inFirstName VARCHAR(30);
+  DECLARE inLastName VARCHAR(30);
+  DECLARE isPass INT;
+  DECLARE reservationExists INT;
+
+  SELECT rid INTO reservationExists
+  FROM reservation
+  WHERE rid=in_reservation_nr;
+
+  IF reservationExists IS NOT NULL THEN
+    
+    SET inFirstName = SUBSTRING_INDEX(in_name, ' ', 1);
+    SET inLastName = SUBSTRING_INDEX(in_name, ' ', -1);
+
+    SELECT passnr 
+    INTO isPass
+    FROM passenger 
+    WHERE passnr=in_passport_number;
+
+    IF isPass IS NULL THEN
+      INSERT INTO passenger(passnr, firstName, lastName)
+      VALUES (in_passport_number, 
+              inFirstName,
+              inLastName);
+
+      INSERT INTO passportOnReservation(passport, reservation_nr)
+      VALUES (in_passport_number, in_reservation_nr);
+    ELSE
+      INSERT INTO passportOnReservation(passport, reservation_nr)
+      VALUES (in_passport_number, in_reservation_nr);
+    END IF;
+  END IF;
+  -- Should probably be a check to see if passenger already on reservation.
+  
+  SELECT "The given reservation number does not exist" AS "Message";
+END //
+
+DROP PROCEDURE IF EXISTS addContact;
+CREATE PROCEDURE addContact(IN in_reservation_nr INT, 
+                            IN in_passport_number INT,
+                            IN in_email VARCHAR(30),
+                            IN in_phone BIGINT)
+BEGIN
+-- cpassnr INT NOT NULL,
+    -- phone BIGINT,
+    -- email VARCHAR(30)
+  INSERT INTO contact(cpassnr, phone, email)
+  VALUES (in_passport_number, in_phone, in_email);
+
+  UPDATE reservation
+  SET
+    cpassnr=in_passport_number
+  WHERE
+    rid=in_reservation_nr;
+    
+END //
+
 DELIMITER ;
 
 -- SELECT "Testing answer for 6, handling reservations and bookings" as "Message";
