@@ -76,7 +76,7 @@ CREATE TABLE flight
     vacantseats INT DEFAULT 40,
     week INT,
     year INT,
-    routeid INT NOT NULL,
+    wsid INT NOT NULL,
     CONSTRAINT pk_flight PRIMARY KEY(flightnr)) 
     ENGINE=InnoDB;
 
@@ -119,7 +119,7 @@ ALTER TABLE weeklyschedule ADD CONSTRAINT fk_ws_wf FOREIGN KEY (day) REFERENCES 
 ALTER TABLE froute ADD CONSTRAINT fk_froute_airport_from FOREIGN KEY (fromcode) REFERENCES airport(code);
 ALTER TABLE froute ADD CONSTRAINT fk_froute_airport_to FOREIGN KEY (tocode) REFERENCES airport(code);
 ALTER TABLE flight ADD CONSTRAINT fk_flight_ws FOREIGN KEY (year) REFERENCES weeklyschedule(year);
-ALTER TABLE flight ADD CONSTRAINT fk_flight_froute FOREIGN KEY (routeid) REFERENCES froute(routeid);
+ALTER TABLE flight ADD CONSTRAINT fk_wsid_flight_ws FOREIGN KEY (wsid) REFERENCES weeklyschedule(wsid);
 ALTER TABLE reservation ADD CONSTRAINT fk_reservation_flight FOREIGN KEY (flightnr) REFERENCES flight(flightnr);
 ALTER TABLE reservation ADD CONSTRAINT fk_reservation_contact FOREIGN KEY (cpassnr) REFERENCES contact(cpassnr);
 ALTER TABLE booking ADD CONSTRAINT fk_booking_reservation FOREIGN KEY (bookingid) REFERENCES reservation(rid);
@@ -185,19 +185,18 @@ BEGIN
   AND (year=in_year);
 END; //
 
--- Get from routeId from weeklyschedule
--- CREATE PROCEDURE getRouteIdFromWF(OUT route_id INT, 
---                             IN in_year INT,
---                             IN in_day  
---                             IN in_arrival_airport_code VARCHAR(3), 
---                             IN in_year INT)
--- BEGIN
---   SELECT routeid INTO route_id
---   FROM froute 
---   WHERE (fromcode=in_departure_airport_code)
---   AND (tocode=in_arrival_airport_code)
---   AND (year=in_year);
--- END; //
+-- Get wsid from weeklyschedule
+CREATE PROCEDURE getWsidFromWeeklySchedule(OUT out_wsid INT, 
+                            IN in_year INT,
+                            IN in_day VARCHAR(10),  
+                            IN in_dep_time TIME)
+BEGIN
+  SELECT wsid INTO out_wsid
+  FROM weeklyschedule 
+  WHERE year=in_year
+    AND day=in_day
+    AND dep_time=in_dep_time;
+END; //
 
 
 CREATE PROCEDURE addFlight(IN in_departure_airport_code VARCHAR(3), 
@@ -208,6 +207,7 @@ CREATE PROCEDURE addFlight(IN in_departure_airport_code VARCHAR(3),
 BEGIN
   DECLARE routeID INT DEFAULT -1;
   DECLARE week_cntr INT DEFAULT 1;
+  DECLARE wsid INT DEFAULT -1;
   
   CALL getRouteID(routeID, 
                   in_departure_airport_code, 
@@ -217,9 +217,11 @@ BEGIN
   INSERT INTO weeklyschedule(year, day, routeid, dep_time)
   VALUES (in_year, in_day, routeID, in_dep_time);
 
+  SELECT last_insert_id() INTO wsid;
+
   WHILE week_cntr <= 52 DO
-    INSERT INTO flight(week, year, routeid)
-    VALUES (week_cntr, in_year, routeID);
+    INSERT INTO flight(week, year, wsid)
+    VALUES (week_cntr, in_year, wsid);
     SET week_cntr = week_cntr + 1;
   END WHILE;
 
@@ -391,15 +393,16 @@ DROP FUNCTION IF EXISTS getFlightNr;
 
 DELIMITER //
 
-CREATE FUNCTION getFlightNr(in_week INT, in_year INT, in_route_id INT)
+CREATE FUNCTION getFlightNr(in_week INT, in_year INT, in_wsid INT)
 RETURNS INT
 BEGIN
   DECLARE return_flight_nr INT;
+
   SELECT flightnr INTO return_flight_nr
   FROM flight
   WHERE week=in_week
     AND year=in_year
-    AND routeid=in_route_id;
+    AND wsid=in_wsid;
 
   RETURN return_flight_nr;
 END; //
@@ -422,47 +425,39 @@ CREATE PROCEDURE addReservation(IN in_departure_airport_code VARCHAR(3),
                                 OUT output_reservation_number INT)
 BEGIN
   DECLARE vacantSeats INT;
-  DECLARE routeID INT;
+  DECLARE the_wsid INT;
   DECLARE flightnumber INT;
+  DECLARE routeID INT;
+
   CALL getRouteID(routeID, 
                   in_departure_airport_code, 
                   in_arrival_airport_code, 
                   in_year);
 
-  -- Make sure that in_year, in_day, routeID and in_time match up with 
-  -- year, day, routeid and dep_time in weeklyscheedule.
-  SELECT wsid INTO routeID
+  -- Make sure that in_year, in_day and in_time match up with 
+  -- year, day and dep_time in weeklyscheedule.
+  SELECT wsid INTO the_wsid
   FROM weeklyschedule
   WHERE (year=in_year
     AND day=in_day
-    AND routeid=routeID
     AND dep_time=in_time);
+
+  IF (the_wsid IS NULL) THEN
+    SELECT "There exist no flight for the given route, date and time"
+    AS 'Message';
+  END IF;
   
-
-  -- "MIT","HOB",2010,1,"Tuesday","21:00:00",3,@b
-  -- SELECT in_day
-  --   AS 'KKKKKKKKKKKKKKKKKK';
-
-  -- IF (routeID IS NULL) THEN
-  --   SELECT "There exist no flight for the given route, date and time"
-  --   AS 'Message';
-  -- END IF;
-
-
-  -- Get flightnumber from the info we have as input.
-  SET flightnumber = getFlightNr(in_week, in_year, routeID);
-
-  -- SELECT flightnumber AS "FlightNumber";
+  -- -- Get flightnumber from the info we have as input.
+  SET flightnumber = getFlightNr(in_week, in_year, the_wsid);
 
   SET vacantSeats = calculateFreeSeats(flightnumber);
   IF ( vacantSeats >= in_number_of_passengers ) THEN
     INSERT INTO reservation(flightnr)
     VALUE (flightnumber);
-    SELECT last_insert_id() AS "my pp";
-    -- SELECT last_insert_id() INTO output_reservation_number;
-  -- ELSE
-  --   SELECT "There exist no flight for the given route, date and time"
-  --   AS 'Message';
+    SELECT last_insert_id() INTO output_reservation_number;
+  ELSE
+    SELECT "There are not enough seats available on the chosen flight"
+    AS 'Message';
   END IF;
 
 

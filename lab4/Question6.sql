@@ -25,18 +25,6 @@
 	Test12: Adding a passenger to an already payed reservation. Should print the message 
 		"The booking has already been payed and no futher passengers can be added".
 **********************************************************************************************/
--- Deleting all contents of tables:
--- DELETE FROM airport            |
--- | booking            |
--- | contact            |
--- | flight             |
--- | froute             |
--- | passenger          |
--- | profitfactor       |
--- | reservation        |
--- | ticket             |
--- | weekdayfactor      |
--- | weeklyschedule
 
 
 SELECT "Testing answer for 6, handling reservations and bookings" as "Message";
@@ -57,11 +45,11 @@ SELECT "Check that the reservation number is returned properly (any number will 
 SELECT "Test 2: Adding a reservation with incorrect flightdetails. Expected answer: There exist no flight for the given route, date and time" as "Message";
 CALL addReservation("MIT","HOB",2010,1,"Tuesday","21:00:00",3,@b); 
 
--- SELECT "Test 3: Adding a reservation when there are not enough seats. Expected answer: There are not enough seats available on the chosen flight" as "Message";
--- CALL addReservation("MIT","HOB",2010,1,"Monday","09:00:00",61,@c); 
+SELECT "Test 3: Adding a reservation when there are not enough seats. Expected answer: There are not enough seats available on the chosen flight" as "Message";
+CALL addReservation("MIT","HOB",2010,1,"Monday","09:00:00",61,@c); 
 
--- SELECT "Test 4.1: Adding a passenger. Expected OK result" as "Message";
--- CALL addPassenger(@a,00000001,"Frodo Baggins");
+SELECT "Test 4.1: Adding a passenger. Expected OK result" as "Message";
+CALL addPassenger(@a,00000001,"Frodo Baggins");
 
 -- SELECT "Test 4.2: Test whether the same passenger can be added to other reservations. For this test, first add another reservation" as "Message";
 -- CALL addReservation("MIT","HOB",2010,1,"Monday","21:00:00",4,@e);
