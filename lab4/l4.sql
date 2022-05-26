@@ -1,3 +1,6 @@
+\! clear
+DROP DATABASE brianair;
+CREATE DATABASE brianair;
 use brianair;
 
 --Drop all tables as necessary
@@ -37,10 +40,11 @@ CREATE TABLE weeklyschedule
     day VARCHAR(10) NOT NULL,
     routeid INT,
     dep_time TIME,
-    CONSTRAINT pk_weekly_schedule PRIMARY KEY(routeid))
+    wsid INT NOT NULL AUTO_INCREMENT,
+    CONSTRAINT pk_weekly_schedule PRIMARY KEY(wsid),
     -- Primary key Day from wdf is pointing here thus
     -- day needs to be unique.
-    -- CONSTRAINT uniq_day UNIQUE(day)) 
+    CONSTRAINT unique_time_routeId UNIQUE(year, day, routeId, dep_time)) 
     ENGINE=InnoDB;
     
 CREATE TABLE weekdayfactor
@@ -65,6 +69,7 @@ CREATE TABLE airport
     country VARCHAR(30),
     CONSTRAINT pk_airport PRIMARY KEY(code)) 
     ENGINE=InnoDB;
+
 
 CREATE TABLE flight
     (flightnr INT NOT NULL AUTO_INCREMENT,
@@ -180,16 +185,34 @@ BEGIN
   AND (year=in_year);
 END; //
 
+-- Get from routeId from weeklyschedule
+-- CREATE PROCEDURE getRouteIdFromWF(OUT route_id INT, 
+--                             IN in_year INT,
+--                             IN in_day  
+--                             IN in_arrival_airport_code VARCHAR(3), 
+--                             IN in_year INT)
+-- BEGIN
+--   SELECT routeid INTO route_id
+--   FROM froute 
+--   WHERE (fromcode=in_departure_airport_code)
+--   AND (tocode=in_arrival_airport_code)
+--   AND (year=in_year);
+-- END; //
+
 
 CREATE PROCEDURE addFlight(IN in_departure_airport_code VARCHAR(3), 
                            IN in_arrival_airport_code VARCHAR(3), 
-                           IN in_year INT, IN in_day VARCHAR(10), 
+                           IN in_year INT, 
+                           IN in_day VARCHAR(10), 
                            IN in_dep_time TIME)
 BEGIN
   DECLARE routeID INT DEFAULT -1;
   DECLARE week_cntr INT DEFAULT 1;
   
-  CALL getRouteID(routeID, in_departure_airport_code, in_arrival_airport_code, in_year);
+  CALL getRouteID(routeID, 
+                  in_departure_airport_code, 
+                  in_arrival_airport_code, 
+                  in_year);
   
   INSERT INTO weeklyschedule(year, day, routeid, dep_time)
   VALUES (in_year, in_day, routeID, in_dep_time);
@@ -406,33 +429,60 @@ BEGIN
                   in_arrival_airport_code, 
                   in_year);
 
+  -- Make sure that in_year, in_day, routeID and in_time match up with 
+  -- year, day, routeid and dep_time in weeklyscheedule.
+  SELECT wsid INTO routeID
+  FROM weeklyschedule
+  WHERE (year=in_year
+    AND day=in_day
+    AND routeid=routeID
+    AND dep_time=in_time);
+  
+
+  -- "MIT","HOB",2010,1,"Tuesday","21:00:00",3,@b
+  -- SELECT in_day
+  --   AS 'KKKKKKKKKKKKKKKKKK';
+
+  -- IF (routeID IS NULL) THEN
+  --   SELECT "There exist no flight for the given route, date and time"
+  --   AS 'Message';
+  -- END IF;
+
+
   -- Get flightnumber from the info we have as input.
   SET flightnumber = getFlightNr(in_week, in_year, routeID);
+
+  -- SELECT flightnumber AS "FlightNumber";
+
   SET vacantSeats = calculateFreeSeats(flightnumber);
   IF ( vacantSeats >= in_number_of_passengers ) THEN
     INSERT INTO reservation(flightnr)
     VALUE (flightnumber);
-    SELECT last_insert_id() INTO output_reservation_number;
+    SELECT last_insert_id() AS "my pp";
+    -- SELECT last_insert_id() INTO output_reservation_number;
+  -- ELSE
+  --   SELECT "There exist no flight for the given route, date and time"
+  --   AS 'Message';
   END IF;
 
 
 END; //
 DELIMITER ;
 
-SELECT "Testing answer for 6, handling reservations and bookings" as "Message";
-SELECT "Filling database with flights" as "Message";
-/*Fill the database with data */
-CALL addYear(2010, 2.3);
-CALL addDay(2010,"Monday",1);
-CALL addDestination("MIT","Minas Tirith","Mordor");
-CALL addDestination("HOB","Hobbiton","The Shire");
-CALL addRoute("MIT","HOB",2010,2000);
-CALL addFlight("MIT","HOB", 2010, "Monday", "09:00:00");
-CALL addFlight("MIT","HOB", 2010, "Monday", "21:00:00");
+-- SELECT "Testing answer for 6, handling reservations and bookings" as "Message";
+-- SELECT "Filling database with flights" as "Message";
+-- /*Fill the database with data */
+-- CALL addYear(2010, 2.3);
+-- CALL addDay(2010,"Monday",1);
+-- CALL addDestination("MIT","Minas Tirith","Mordor");
+-- CALL addDestination("HOB","Hobbiton","The Shire");
+-- CALL addRoute("MIT","HOB",2010,2000);
+-- CALL addFlight("MIT","HOB", 2010, "Monday", "09:00:00");
+-- CALL addFlight("MIT","HOB", 2010, "Monday", "21:00:00");
 
-SELECT "Test 1: Adding a reservation, expected OK result" as "Message";
-CALL addReservation("MIT","HOB",2010,1,"Monday","09:00:00",3,@a);
-SELECT "Check that the reservation number is returned properly (any number will do):" AS "Message",@a AS "Res. number returned"; 
+-- SELECT "Test 1: Adding a reservation, expected OK result" as "Message";
+-- CALL addReservation("MIT","HOB",2010,1,"Monday","09:00:00",3,@a);
+-- SELECT "Check that the reservation number is returned properly (any number will do):" AS "Message",@a AS "Res. number returned"; 
 
 
 -- ##############################################################
@@ -465,19 +515,20 @@ SELECT "Check that the reservation number is returned properly (any number will 
 -- QUESION 4 TEST START #######################################
 
 -- Function tests
-SELECT calculateFreeSeats(208) AS '4 a) Free seats function';
-SELECT calculatePrice(34) AS 'Day: Sunday';
-SELECT calculatePrice(108) AS 'Day: Tuesday';
-SELECT getWeekdayFactor('Tuesday',2010) AS 'Factor: 1.5';
-SELECT getWeekdayFactor('Saturday',2011) AS 'Factor: 2';
-SELECT calculatePrice(101) AS 'Start: 1600';
+-- SELECT calculateFreeSeats(208) AS '4 a) Free seats function';
+-- SELECT calculatePrice(34) AS 'Day: Sunday';
+-- SELECT calculatePrice(108) AS 'Day: Tuesday';
+-- SELECT getWeekdayFactor('Tuesday',2010) AS 'Factor: 1.5';
+-- SELECT getWeekdayFactor('Saturday',2011) AS 'Factor: 2';
+-- SELECT calculatePrice(101) AS 'Start: 1600';
 
-SELECT getPriceFromFlightnr(103) AS 'getPrice Start: 1600';
+-- SELECT getPriceFromFlightnr(103) AS 'getPrice Start: 1600';
 
-SELECT calculatePrice(207) AS 'Start: 1500';
+-- SELECT calculatePrice(207) AS 'Start: 1500';
 
-SELECT calculatePrice(50) AS 'Start: 2000';
-SELECT getRouteIdFromFlight(190) AS 'should be 4';
-SELECT getRouteIdFromFlight(90) AS 'should be 2';
+-- SELECT calculatePrice(50) AS 'Start: 2000';
+-- SELECT getRouteIdFromFlight(190) AS 'should be 4';
+-- SELECT getRouteIdFromFlight(90) AS 'should be 2';
 
-
+-- source Question3.sql;
+source Question6.sql;
