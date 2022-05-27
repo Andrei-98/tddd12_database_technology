@@ -743,6 +743,15 @@ END //
 
 DELIMITER ;
 
+-- View should contain: - Must be run on the school mysql instance :l
+-- departure_city_name, destination_city_name, departure_time,
+-- departure_day, departure_week, departure_year, nr_of_free_seats,
+-- current_price_per_seat.
+DROP VIEW IF EXISTS allFlights CASCADE;
+
+CREATE VIEW allFlights AS
+SELECT
+
 -- SELECT "Testing answer for 6, handling reservations and bookings" as "Message";
 -- SELECT "Filling database with flights" as "Message";
 -- /*Fill the database with data */
@@ -804,5 +813,7 @@ DELIMITER ;
 -- SELECT getWsidFromFlightnr(190) AS 'should be 4';
 -- SELECT getWsidFromFlightnr(90) AS 'should be 2';
 -- source Question3.sql;
-source Question6.sql;
+
+-- source Question6.sql;
+source Question7.sql;
 SELECT * FROM ticket;
