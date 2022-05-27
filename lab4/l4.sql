@@ -103,8 +103,8 @@ CREATE TABLE reservation
 
 CREATE TABLE booking
     (bookingid INT,
-    ccnr BIGINT,
-    cch VARCHAR(30),
+    creditcardnr BIGINT,
+    creditcardholder VARCHAR(30),
     totalprice DOUBLE,
     CONSTRAINT pk_bookingid PRIMARY KEY(bookingid)) 
     ENGINE=InnoDB;
@@ -581,8 +581,9 @@ BEGIN
   END IF;
 
   -- Question 6 TEST 7 will give wrong print since below will always activate
-  -- since we're checking if a person is on an unexisting reservation..
+  -- as we're checking if a person is on an unexisting reservation..
   IF passportIsPassengerOnReservation(in_passport_number, in_reservation_nr) IS NULL
+  AND boolDebug != 1
   THEN
     SELECT "The person is not a passenger of the reservation" INTO debugMessage;
     SET boolDebug=1;
@@ -605,16 +606,45 @@ BEGIN
 END; //
 
 
+DROP FUNCTION IF EXISTS reservedSeatsOnReservationNr;
+
+CREATE FUNCTION reservedSeatsOnReservationNr(in_reservation_nr)
+RETURNS INT
+BEGIN
+  DECLARE reservedSeats INT;
+
+  SELECT COUNT(*) INTO reservedSeats
+  FROM passportOnReservation
+  WHERE reservation_nr=in_reservation_nr;
+
+  RETURN reservedSeats;
+END; //
+
+
+DROP PROCEDURE IF EXISTS addPayment;
+
 CREATE PROCEDURE addPayment(IN in_reservation_nr INT,
                             IN in_credit_card_holder_name VARCHAR(30),
                             IN in_credit_card_nr BIGINT)
 BEGIN
-  
+  DECLARE flightNumber INT;
+  DECLARE totalPrice INT;
   IF getValidReservationId(in_reservation_nr) IS NOT NULL THEN
     SELECT "Reservation number exists" AS "TEMP DEBUG";
--- If the reservation has a contact and enough free seats on flight:
-      -- add payment information to the reservation and save the amount
-      -- to be drawn from the credit card in the database
+
+    -- Get flightnumber
+    SELECT flightnr INTO flightNumber
+    FROM reservation
+    WHERE rid=in_reservation_nr;
+
+    IF calculateFreeSeats(flightNumber) >= reservedSeatsOnReservationNr(in_reservation_nr) THEN
+      SELECT calculatePrice(flightNumber)*reservedSeatsOnReservationNr(in_reservation_nr) INTO totalPrice;
+      
+      INSERT INTO booking(bookingid, creditcardnr, creditcardholder, totalprice)
+      VALUES (in_reservation_nr, in_credit_card_nr, in_credit_card_holder_name, 
+        totalPrice
+      );
+    END IF;
   ELSE
     SELECT "The given reservation number does not exist" AS "Message";
   END IF;
