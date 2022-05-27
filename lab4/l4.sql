@@ -707,7 +707,7 @@ pros: BEGIN
     SELECT "The reservation has no contact yet" AS "Message";
     LEAVE pros;
   ELSE
-    SELECT "Reservation number exists" AS "TEMP DEBUG";
+    -- SELECT "Reservation number exists" AS "TEMP DEBUG";
 
     -- Get flightnumber
     SELECT flightnr INTO flightNumber
@@ -729,6 +729,14 @@ pros: BEGIN
       VALUES (in_reservation_nr, in_credit_card_nr, in_credit_card_holder_name, 
         totalPrice
       );
+
+      UPDATE flight
+      SET vacantseats=calculateFreeSeats(flightNumber)-reservedSeats
+      WHERE flightnr=flightNumber;
+
+    ELSE
+      SELECT "There are not enough seats available on the flight anymore, deleting reservation" AS "Message";
+      LEAVE pros;
     END IF;
   END IF;
 END //
@@ -795,6 +803,6 @@ DELIMITER ;
 -- SELECT calculatePrice(50) AS 'Start: 2000';
 -- SELECT getWsidFromFlightnr(190) AS 'should be 4';
 -- SELECT getWsidFromFlightnr(90) AS 'should be 2';
-
+-- source Question3.sql;
 source Question6.sql;
 SELECT * FROM ticket;
