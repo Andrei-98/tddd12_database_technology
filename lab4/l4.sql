@@ -1,7 +1,7 @@
 \! clear
- DROP DATABASE andpl509;
- CREATE DATABASE andpl509;
- use andpl509;
+DROP DATABASE brianair;
+CREATE DATABASE brianair;
+use brianair;
 
 --Drop all tables as necessary
 --DROP TABLE IF EXISTS table_name” resp. “DROP PROCEDURE IF EXISTS proc_name
@@ -249,7 +249,7 @@ DROP FUNCTION IF EXISTS calculateFreeSeats;
 DROP FUNCTION IF EXISTS calculatePrice;
 DROP FUNCTION IF EXISTS getWeekdayFactor;
 DROP FUNCTION IF EXISTS getProfitFactor;
-DROP FUNCTION IF EXISTS getRouteIdFromFlightnr;
+DROP FUNCTION IF EXISTS getWsidFromFlightnr;
 DROP FUNCTION IF EXISTS getPriceFromFlightnr;
 
 DELIMITER //
@@ -299,16 +299,16 @@ BEGIN
 END;//
 
 
-CREATE FUNCTION getRouteIdFromFlightnr(flightnumber INT)
+CREATE FUNCTION getWsidFromFlightnr(flightnumber INT)
 RETURNS INT
 BEGIN
-  DECLARE flightRouteId INT;
+  DECLARE flightWSID INT;
 
-  SELECT f.routeid INTO flightRouteId
-  FROM flight AS f
-  WHERE f.flightnr=flightnumber;
+  SELECT wsid INTO flightWSID
+  FROM flight
+  WHERE flightnr=flightnumber;
 
-  RETURN flightRouteId; 
+  RETURN flightWSID; 
 END;//
 
 
@@ -319,7 +319,7 @@ BEGIN
 
   SELECT fr.routeprice INTO routePrice
   FROM froute AS fr
-  WHERE fr.routeid=getRouteIdFromFlightnr(flightnumber);
+  WHERE fr.routeid=getWsidFromFlightnr(flightnumber);
 
   RETURN routePrice; 
 END;//
@@ -355,12 +355,12 @@ BEGIN
   -- FIND OUT DAY - WORKS
   SELECT ws.day INTO wantedDay
   FROM weeklyschedule AS ws
-  WHERE ws.routeid=getRouteIdFromFlightnr(flightnumber);  
+  WHERE ws.routeid=getWsidFromFlightnr(flightnumber);  
 
   -- FIND OUT YEAR - WORKS
   SELECT ws.year INTO wantedYear
   FROM weeklyschedule AS ws
-  WHERE ws.routeid=getRouteIdFromFlightnr(flightnumber);
+  WHERE ws.routeid=getWsidFromFlightnr(flightnumber);
 
   -- FIND OUT vacant seats - WORKS
   SELECT calculateFreeSeats(flightnumber) INTO vacantseats;
