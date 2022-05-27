@@ -311,15 +311,39 @@ BEGIN
   RETURN flightWSID; 
 END;//
 
+-- CREATE FUNCTION getRouteIdFromFlightnr(flightnumber INT)
+-- RETURNS INT
+-- BEGIN
+--   DECLARE flightRouteId INT;
+
+--   SELECT routeId INTO flightRouteId
+--   FROM flight
+--   WHERE flightnr=flightnumber;
+
+--   RETURN flightRouteId; 
+-- END;//
 
 CREATE FUNCTION getPriceFromFlightnr(flightnumber INT)
 RETURNS DOUBLE
 BEGIN
   DECLARE routePrice DOUBLE;
+  DECLARE routeID INT;
+  DECLARE wsID INT;
 
-  SELECT fr.routeprice INTO routePrice
-  FROM froute AS fr
-  WHERE fr.routeid=getWsidFromFlightnr(flightnumber);
+  -- Get wsid from flightNumber in flight.
+  SELECT wsid INTO wsID
+  FROM flight
+  WHERE flightnr=flightnumber;
+
+-- Get routeId from wsid in weeklyschedule.
+  SELECT routeid into routeID
+  FROM weeklyschedule
+  WHERE wsid=wsID;
+
+-- Get routeprice from routeId in froute.
+  SELECT routeprice INTO routePrice
+  FROM froute
+  WHERE routeid=routeID;
 
   RETURN routePrice; 
 END;//
@@ -349,18 +373,20 @@ BEGIN
   DECLARE wantedYear INT;
   DECLARE dayFactor DOUBLE DEFAULT 1.0;	   
 
+  -- Andrei have fun!
+
   -- FIND OUT ROUTE PRICE - WORKS
   SET routePrice=getPriceFromFlightnr(flightnumber);
   
   -- FIND OUT DAY - WORKS
   SELECT ws.day INTO wantedDay
   FROM weeklyschedule AS ws
-  WHERE ws.routeid=getWsidFromFlightnr(flightnumber);  
+  WHERE ws.wsid=getWsidFromFlightnr(flightnumber);  
 
   -- FIND OUT YEAR - WORKS
   SELECT ws.year INTO wantedYear
   FROM weeklyschedule AS ws
-  WHERE ws.routeid=getWsidFromFlightnr(flightnumber);
+  WHERE ws.wsid=getWsidFromFlightnr(flightnumber);
 
   -- FIND OUT vacant seats - WORKS
   SELECT calculateFreeSeats(flightnumber) INTO vacantseats;
@@ -609,16 +635,36 @@ BEGIN
 END; //
 
 
+DROP FUNCTION IF EXISTS getContactForReservation;
+CREATE FUNCTION getContactForReservation(in_reservation_nr INT)
+RETURNS INT
+BEGIN
+  DECLARE contactPassNr INT;
+
+  SELECT cpassnr INTO contactPassNr
+  FROM reservation
+  WHERE rid=in_reservation_nr;
+
+  RETURN contactPassNr;
+END; //
+
+
 DROP PROCEDURE IF EXISTS addPayment;
 CREATE PROCEDURE addPayment(IN in_reservation_nr INT,
                             IN in_credit_card_holder_name VARCHAR(30),
                             IN in_credit_card_nr BIGINT)
-BEGIN
+pros: BEGIN
   DECLARE flightNumber INT;
   DECLARE totalPrice INT;
   DECLARE reservedSeats INT;
 
-  IF getValidReservationId(in_reservation_nr) IS NOT NULL THEN
+  IF getValidReservationId(in_reservation_nr) IS NULL THEN
+    SELECT "The given reservation number does not exist" AS "Message";
+    LEAVE pros;
+  ELSEIF getContactForReservation(in_reservation_nr) IS NULL THEN
+    SELECT "The reservation has no contact yet" AS "Message";
+    LEAVE pros;
+  ELSE
     SELECT "Reservation number exists" AS "TEMP DEBUG";
 
     -- Get flightnumber
@@ -628,16 +674,20 @@ BEGIN
     
     SET reservedSeats = reservedSeatsOnReservationNr(in_reservation_nr);
 
+    -- reservedSeats is 1
     IF calculateFreeSeats(flightNumber) >= reservedSeats THEN
-      SELECT calculatePrice(flightNumber) * reservedSeats INTO totalPrice;
+      -- SET totalPrice = calculatePrice(flightNumber) * reservedSeats;
       
-      INSERT INTO booking(bookingid, creditcardnr, creditcardholder, totalprice)
-      VALUES (in_reservation_nr, in_credit_card_nr, in_credit_card_holder_name, 
-        totalPrice
-      );
+
+      SELECT calculatePrice(flightNumber) AS 'calprice';
+      
+      -- SELECT calculatePrice(flightNumber) * reservedSeats INTO totalPrice;
+      
+      -- INSERT INTO booking(bookingid, creditcardnr, creditcardholder, totalprice)
+      -- VALUES (in_reservation_nr, in_credit_card_nr, in_credit_card_holder_name, 
+      --   totalPrice
+      -- );
     END IF;
-  ELSE
-    SELECT "The given reservation number does not exist" AS "Message";
   END IF;
 END //
 
@@ -661,27 +711,27 @@ DELIMITER ;
 
 -- ##############################################################
 -- TEST lines for Question3.sql
--- SELECT "Trying to add 2 years" AS "Message";
--- CALL addYear(2010, 2.3);
--- CALL addYear(2011, 2.5);
--- SELECT "Trying to add 4 days" AS "Message";
--- CALL addDay(2010,"Monday",1);
--- CALL addDay(2010,"Tuesday",1.5);
--- CALL addDay(2011,"Saturday",2);
--- CALL addDay(2011,"Sunday",2.5);
--- SELECT "Trying to add 2 destinations" AS "Message";
--- CALL addDestination("MIT","Minas Tirith","Mordor");
--- CALL addDestination("HOB","Hobbiton","The Shire");
--- SELECT "Trying to add 4 routes" AS "Message";
--- CALL addRoute("MIT","HOB",2010,2000);
--- CALL addRoute("HOB","MIT",2010,1600);
--- CALL addRoute("MIT","HOB",2011,2100);
--- CALL addRoute("HOB","MIT",2011,1500);
--- SELECT "Trying to add 4 weeklyschedule flights" AS "Message";
--- CALL addFlight("MIT","HOB", 2010, "Monday", "09:00:00");
--- CALL addFlight("HOB","MIT", 2010, "Tuesday", "10:00:00");
--- CALL addFlight("MIT","HOB", 2011, "Sunday", "11:00:00");
--- CALL addFlight("HOB","MIT", 2011, "Sunday", "12:00:00");
+SELECT "Trying to add 2 years" AS "Message";
+CALL addYear(2010, 2.3);
+CALL addYear(2011, 2.5);
+SELECT "Trying to add 4 days" AS "Message";
+CALL addDay(2010,"Monday",1);
+CALL addDay(2010,"Tuesday",1.5);
+CALL addDay(2011,"Saturday",2);
+CALL addDay(2011,"Sunday",2.5);
+SELECT "Trying to add 2 destinations" AS "Message";
+CALL addDestination("MIT","Minas Tirith","Mordor");
+CALL addDestination("HOB","Hobbiton","The Shire");
+SELECT "Trying to add 4 routes" AS "Message";
+CALL addRoute("MIT","HOB",2010,2000);
+CALL addRoute("HOB","MIT",2010,1600);
+CALL addRoute("MIT","HOB",2011,2100);
+CALL addRoute("HOB","MIT",2011,1500);
+SELECT "Trying to add 4 weeklyschedule flights" AS "Message";
+CALL addFlight("MIT","HOB", 2010, "Monday", "09:00:00");
+CALL addFlight("HOB","MIT", 2010, "Tuesday", "10:00:00");
+CALL addFlight("MIT","HOB", 2011, "Sunday", "11:00:00");
+CALL addFlight("HOB","MIT", 2011, "Sunday", "12:00:00");
 -- SELECT * from froute;
 -- SELECT * from weeklyschedule;
 -- SELECT * from flight;
@@ -689,20 +739,19 @@ DELIMITER ;
 -- QUESION 4 TEST START #######################################
 
 -- Function tests
--- SELECT calculateFreeSeats(208) AS '4 a) Free seats function';
--- SELECT calculatePrice(34) AS 'Day: Sunday';
--- SELECT calculatePrice(108) AS 'Day: Tuesday';
--- SELECT getWeekdayFactor('Tuesday',2010) AS 'Factor: 1.5';
--- SELECT getWeekdayFactor('Saturday',2011) AS 'Factor: 2';
--- SELECT calculatePrice(101) AS 'Start: 1600';
+SELECT calculateFreeSeats(208) AS '4 a) Free seats function';
+SELECT calculatePrice(34) AS 'Day: Sunday';
+SELECT calculatePrice(108) AS 'Day: Tuesday';
+SELECT getWeekdayFactor('Tuesday',2010) AS 'Factor: 1.5';
+SELECT getWeekdayFactor('Saturday',2011) AS 'Factor: 2';
+SELECT calculatePrice(101) AS 'Start: 1600';
 
--- SELECT getPriceFromFlightnr(103) AS 'getPrice Start: 1600';
+SELECT getPriceFromFlightnr(103) AS 'getPrice Start: 1600';
 
--- SELECT calculatePrice(207) AS 'Start: 1500';
+SELECT calculatePrice(207) AS 'Start: 1500';
 
--- SELECT calculatePrice(50) AS 'Start: 2000';
--- SELECT getRouteIdFromFlight(190) AS 'should be 4';
--- SELECT getRouteIdFromFlight(90) AS 'should be 2';
+SELECT calculatePrice(50) AS 'Start: 2000';
+SELECT getWsidFromFlightnr(190) AS 'should be 4';
+SELECT getWsidFromFlightnr(90) AS 'should be 2';
 
--- source Question3.sql;
-source Question6.sql;
+-- source Question6.sql;

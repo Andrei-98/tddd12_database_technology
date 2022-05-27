@@ -70,11 +70,14 @@ CALL addContact(99999,00000001,"frodo@magic.mail",080667989);
 SELECT "Test 8: Adding a contact that is not a passenger on the reservation. Expected result: The person is not a passenger of the reservation" as "Message";
 CALL addContact(@a,00000099,"frodo@magic.mail",080667989); 
 
--- SELECT "Test 9: Making a payment. Expected OK result" as "Message";
--- CALL addPayment (@a, "Gandalf", 6767676767676767); 
 
--- SELECT "Test 10: Making a payment to a reservation with incorrect reservation number. Expected result: The given reservation number does not exist" as "Message";
--- CALL addPayment (999999, "Gandalf", 6767676767676767);
+
+SELECT "Test 9: Making a payment. Expected OK result" as "Message";
+-- @a is 1
+CALL addPayment (@a, "Gandalf", 6767676767676767); 
+
+SELECT "Test 10: Making a payment to a reservation with incorrect reservation number. Expected result: The given reservation number does not exist" as "Message";
+CALL addPayment (999999, "Gandalf", 6767676767676767);
 
 -- SELECT "Test 11: Making a payment to a reservation with no contact. First setting up reservation" as "Message";
 -- CALL addReservation("MIT","HOB",2010,1,"Monday","09:00:00",1,@d); 
