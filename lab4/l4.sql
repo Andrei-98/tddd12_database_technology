@@ -564,35 +564,26 @@ END; //
 
 
 
-
-
-
 DROP PROCEDURE IF EXISTS addContact;
+
 CREATE PROCEDURE addContact(IN in_reservation_nr INT, 
                             IN in_passport_number INT,
                             IN in_email VARCHAR(30),
                             IN in_phone BIGINT)
 sp: BEGIN
-  DECLARE boolDebug INT DEFAULT 0;
 
   IF getValidReservationId(in_reservation_nr) IS NULL THEN
-
     SELECT "The given reservation number does not exist" AS "Message";
     LEAVE sp;
   END IF;
 
-  -- Question 6 TEST 7 will give wrong print since below will always activate
-  -- as we're checking if a person is on an unexisting reservation..
   IF passportIsPassengerOnReservation(in_passport_number, in_reservation_nr) IS NULL
-  AND boolDebug != 1
   THEN
-
     SELECT "The person is not a passenger of the reservation" AS "Message";
-    LEAVE SP;
+    LEAVE sp;
   ELSE
     -- column count doesnt match value conunt at row 1
     INSERT INTO contact(cpassnr, phone, email)
-
     VALUES (in_passport_number, in_phone, in_email);
 
     UPDATE reservation
