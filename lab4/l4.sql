@@ -113,7 +113,8 @@ CREATE TABLE ticket
     (passnr INT,
     ticketnr INT NOT NULL,
     bookingid INT,
-    CONSTRAINT pk_ticketnr PRIMARY KEY(ticketnr)) 
+    CONSTRAINT pk_ticketnr PRIMARY KEY(ticketnr),
+    CONSTRAINT unique_ticket UNIQUE(passnr, bookingid)) 
     ENGINE=InnoDB;
 
 
@@ -405,47 +406,52 @@ DROP PROCEDURE IF EXISTS addTicket;
 DROP TRIGGER IF EXISTS ticketNrGen;
 
 DELIMITER //
-CREATE PROCEDURE addTicket(IN bookingID INT, IN passNbr INT)
+CREATE PROCEDURE addTicket(IN bookingID INT, IN ticketnr INT, IN passNbr INT)
 BEGIN
   INSERT INTO ticket(passnr, ticketnr, bookingid)
-  VALUES (passNbr, FLOOR(RAND() * 999999), bookingID);
+  VALUES (passNbr, ticketnr, bookingID);
 END; //
 
 
 CREATE TRIGGER ticketNrGen
-ON ticket
 AFTER INSERT ON booking
 FOR EACH ROW -- affect only the inserted row
 -- NOT FOR REPLICATION no clue what this is you had it
-BEGIN    
+BEGIN
+ 
+  -- Iterate through rows in passportOnReservation where reservation_nr
+  -- matches bookingid.
+
+  -- For each row above create a ticket with the passnr INT and bookingid INT
+
+  DECLARE n INT;
+  DECLARE i INT;
+  DECLARE randSeed DOUBLE;
+  DECLARE wantedPassport INT;
+  DECLARE newBookingNumber INT;
+
+  SET newBookingNumber=NEW.bookingid;
   
-    -- Iterate through rows in passportOnReservation where reservation_nr
-    -- matches bookingid.
+  SELECT COUNT(reservation_nr=1) INTO n 
+  FROM passportOnReservation
+  WHERE reservation_nr=newBookingNumber;
 
-    -- For each row above create a ticket with the passnr INT and bookingid INT
-    SELECT NEW.bookingid AS 'Message';
+  SET i=0;
 
-    DECLARE n INT DEFAULT 0;
-    DECLARE i INT DEFAULT 0;
-    SELECT COUNT(*) as 'coiunted' 
-    FROM passportOnReservation
-    WHERE reservation_nr=NEW.bookingid;
+  WHILE i<n DO 
+    SELECT passport INTO wantedPassport
+    FROM passportOnReservation 
+    WHERE reservation_nr=newBookingNumber;
 
-    SET i=0;
-    WHILE i<n DO 
-      addTicket(NEW.bookingid, (
-        SELECT passport 
-        FROM passportOnReservation 
-        WHERE reservation_nr=NEW.bookingid)
-      );
-      -- INSERT INTO table_B(ID, VAL) SELECT (ID, VAL) FROM table_A LIMIT i,1;
-      SET i = i + 1;
-    END WHILE;
+    -- DELETE FROM passportOnReservation
+    -- WHERE reservation_nr=newBookingNumber
+    --   AND passport=wantedPassport;
 
-    -- [trigger_while:] WHILE 
-    -- SELECT ticketNbr from ticket WHERE ticketNbr=ticket_number IS NOT NULL DO 
-    --     SET ticket_number = SELECT 
-    -- END WHILE [trigger_while]
+    SET randSeed = FLOOR(RAND() * 999999);
+    CALL addTicket(newBookingNumber, randSeed, wantedPassport);
+    SET i = i + 1;
+ 
+  END WHILE;
 END; // 
 
 
@@ -530,11 +536,12 @@ DROP PROCEDURE IF EXISTS addPassenger;
 CREATE PROCEDURE addPassenger(IN in_reservation_nr INT, 
                               IN in_passport_number INT,
                               IN in_name VARCHAR(30))
-BEGIN
+pros:BEGIN
   DECLARE inFirstName VARCHAR(30);
   DECLARE inLastName VARCHAR(30);
   DECLARE isPass INT;
   DECLARE reservationExists INT;
+  DECLARE booking_id INT;
 
   SELECT rid INTO reservationExists
   FROM reservation
@@ -542,6 +549,14 @@ BEGIN
 
   IF reservationExists IS NOT NULL THEN
     
+    SELECT bookingid INTO booking_id
+    FROM booking
+    WHERE bookingid=in_reservation_nr;
+    IF booking_id IS NOT NULL THEN
+      SELECT "The booking has already been payed and no futher passengers can be added" AS "MESSAGE";
+      LEAVE pros;
+    END IF;
+
     SET inFirstName = SUBSTRING_INDEX(in_name, ' ', 1);
     SET inLastName = SUBSTRING_INDEX(in_name, ' ', -1);
 
@@ -698,22 +713,22 @@ pros: BEGIN
     SELECT flightnr INTO flightNumber
     FROM reservation
     WHERE rid=in_reservation_nr;
-    
+
     SET reservedSeats = reservedSeatsOnReservationNr(in_reservation_nr);
 
     -- reservedSeats is 1
     IF calculateFreeSeats(flightNumber) >= reservedSeats THEN
-      -- SET totalPrice = calculatePrice(flightNumber) * reservedSeats;
-      
+      SET totalPrice = calculatePrice(flightNumber) * reservedSeats;
 
-      SELECT calculatePrice(flightNumber) AS 'calprice';
-      
+
+      -- SELECT calculatePrice(flightNumber) AS 'calprice';
+
       -- SELECT calculatePrice(flightNumber) * reservedSeats INTO totalPrice;
-      
-      -- INSERT INTO booking(bookingid, creditcardnr, creditcardholder, totalprice)
-      -- VALUES (in_reservation_nr, in_credit_card_nr, in_credit_card_holder_name, 
-      --   totalPrice
-      -- );
+
+      INSERT INTO booking(bookingid, creditcardnr, creditcardholder, totalprice)
+      VALUES (in_reservation_nr, in_credit_card_nr, in_credit_card_holder_name, 
+        totalPrice
+      );
     END IF;
   END IF;
 END //
@@ -731,7 +746,7 @@ DELIMITER ;
 -- CALL addFlight("MIT","HOB", 2010, "Monday", "09:00:00");
 -- CALL addFlight("MIT","HOB", 2010, "Monday", "21:00:00");
 
--- SELECT "Test 1: Adding a reservation, expected OK result" as "Message";
+-- -- SELECT "Test 1: Adding a reservation, expected OK result" as "Message";
 -- CALL addReservation("MIT","HOB",2010,1,"Monday","09:00:00",3,@a);
 -- SELECT "Check that the reservation number is returned properly (any number will do):" AS "Message",@a AS "Res. number returned"; 
 
@@ -782,3 +797,4 @@ DELIMITER ;
 -- SELECT getWsidFromFlightnr(90) AS 'should be 2';
 
 source Question6.sql;
+SELECT * FROM ticket;

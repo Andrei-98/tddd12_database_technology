@@ -79,15 +79,15 @@ CALL addPayment (@a, "Gandalf", 6767676767676767);
 SELECT "Test 10: Making a payment to a reservation with incorrect reservation number. Expected result: The given reservation number does not exist" as "Message";
 CALL addPayment (999999, "Gandalf", 6767676767676767);
 
--- SELECT "Test 11: Making a payment to a reservation with no contact. First setting up reservation" as "Message";
--- CALL addReservation("MIT","HOB",2010,1,"Monday","09:00:00",1,@d); 
--- CALL addPassenger(@d,00000002,"Sam Gamgee"); 
+SELECT "Test 11: Making a payment to a reservation with no contact. First setting up reservation" as "Message";
+CALL addReservation("MIT","HOB",2010,1,"Monday","09:00:00",1,@d); 
+CALL addPassenger(@d,00000002,"Sam Gamgee"); 
 
--- SELECT "Now testing. Expected result: The reservation has no contact yet" as "Message";
--- CALL addPayment (@d, "Gandalf", 6767676767676767); 
+SELECT "Now testing. Expected result: The reservation has no contact yet" as "Message";
+CALL addPayment (@d, "Gandalf", 6767676767676767); 
 
--- SELECT "Test 12: Adding a passenger to an already payed reservation. Expected result: The booking has already been payed and no futher passengers can be added" as "Message";
--- CALL addPassenger(@a,00000003,"Merry Pippins"); 
+SELECT "Test 12: Adding a passenger to an already payed reservation. Expected result: The booking has already been payed and no futher passengers can be added" as "Message";
+CALL addPassenger(@a,00000003,"Merry Pippins"); 
 
 
 -- /******************************************************************************************
