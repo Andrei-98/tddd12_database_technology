@@ -1,7 +1,7 @@
 \! clear
--- DROP DATABASE brianair;
--- CREATE DATABASE brianair;
--- use brianair;
+ DROP DATABASE andpl509;
+ CREATE DATABASE andpl509;
+ use andpl509;
 
 --Drop all tables as necessary
 --DROP TABLE IF EXISTS table_name” resp. “DROP PROCEDURE IF EXISTS proc_name
@@ -572,13 +572,13 @@ CREATE PROCEDURE addContact(IN in_reservation_nr INT,
                             IN in_passport_number INT,
                             IN in_email VARCHAR(30),
                             IN in_phone BIGINT)
-BEGIN
-  DECLARE debugMessage VARCHAR(100);
-  DECLARE boolDebug INT DEFAULT 0; 
+sp: BEGIN
+  DECLARE boolDebug INT DEFAULT 0;
 
   IF getValidReservationId(in_reservation_nr) IS NULL THEN
-    SELECT "The given reservation number does not exist" INTO debugMessage;
-    SET boolDebug=1;
+
+    SELECT "The given reservation number does not exist" AS "Message";
+    LEAVE sp;
   END IF;
 
   -- Question 6 TEST 7 will give wrong print since below will always activate
@@ -586,10 +586,13 @@ BEGIN
   IF passportIsPassengerOnReservation(in_passport_number, in_reservation_nr) IS NULL
   AND boolDebug != 1
   THEN
-    SELECT "The person is not a passenger of the reservation" INTO debugMessage;
-    SET boolDebug=1;
+
+    SELECT "The person is not a passenger of the reservation" AS "Message";
+    LEAVE SP;
   ELSE
+    -- column count doesnt match value conunt at row 1
     INSERT INTO contact(cpassnr, phone, email)
+
     VALUES (in_passport_number, in_phone, in_email);
 
     UPDATE reservation
@@ -598,12 +601,6 @@ BEGIN
     WHERE
       rid=in_reservation_nr;
   END IF;
-
-  IF boolDebug=1 THEN
-   SELECT debugMessage AS 'Message';
-  END IF;
-  
-
 END; //
 
 
