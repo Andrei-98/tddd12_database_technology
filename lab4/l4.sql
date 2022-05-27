@@ -111,7 +111,7 @@ CREATE TABLE booking
 
 CREATE TABLE ticket
     (passnr INT,
-    ticketnr INT NOT NULL AUTO_INCREMENT,
+    ticketnr INT NOT NULL,
     bookingid INT,
     CONSTRAINT pk_ticketnr PRIMARY KEY(ticketnr)) 
     ENGINE=InnoDB;
@@ -326,26 +326,26 @@ END;//
 CREATE FUNCTION getPriceFromFlightnr(flightnumber INT)
 RETURNS DOUBLE
 BEGIN
-  DECLARE routePrice DOUBLE;
-  DECLARE routeID INT;
-  DECLARE wsID INT;
+  DECLARE routePrices DOUBLE;
+  DECLARE routeIDe INT;
+  DECLARE wsIDe INT;
 
   -- Get wsid from flightNumber in flight.
-  SELECT wsid INTO wsID
+  SELECT wsid INTO wsIDe
   FROM flight
   WHERE flightnr=flightnumber;
 
 -- Get routeId from wsid in weeklyschedule.
-  SELECT routeid into routeID
+  SELECT routeid INTO routeIDe
   FROM weeklyschedule
-  WHERE wsid=wsID;
+  WHERE wsid=wsIDe;
 
 -- Get routeprice from routeId in froute.
-  SELECT routeprice INTO routePrice
+  SELECT routeprice INTO routePrices
   FROM froute
-  WHERE routeid=routeID;
+  WHERE routeid=routeIDe;
 
-  RETURN routePrice; 
+  RETURN routePrices; 
 END;//
 
 -- The flight pricing depends on
@@ -361,7 +361,7 @@ END;//
 -- Pricing factors (including profitfactor) and route prices can change when the
 -- schedule changes, once per year!
 
-CREATE FUNCTION calculatePrice(flightnumber INT) -- Still TODO
+CREATE FUNCTION calculatePrice(flightnumber INT)
 RETURNS DOUBLE
 -- RETURNS VARCHAR(10)
 -- RETURNS INT
@@ -372,8 +372,6 @@ BEGIN
   DECLARE wantedDay VARCHAR(10);
   DECLARE wantedYear INT;
   DECLARE dayFactor DOUBLE DEFAULT 1.0;	   
-
-  -- Andrei have fun!
 
   -- FIND OUT ROUTE PRICE - WORKS
   SET routePrice=getPriceFromFlightnr(flightnumber);
@@ -407,20 +405,49 @@ DROP PROCEDURE IF EXISTS addTicket;
 DROP TRIGGER IF EXISTS ticketNrGen;
 
 DELIMITER //
-CREATE PROCEDURE addTicket(IN bookingID INT, IN passNbr INT, IN ticketNbr INT)
+CREATE PROCEDURE addTicket(IN bookingID INT, IN passNbr INT)
 BEGIN
   INSERT INTO ticket(passnr, ticketnr, bookingid)
-  VALUES (passNbr, ticketNbr, bookingID);
+  VALUES (passNbr, FLOOR(RAND() * 999999), bookingID);
 END; //
 
 
--- CREATE TRIGGER ticketNrGen
--- ON ticket
--- AFTER INSERT ON booking
--- NOT FOR REPLICATION
--- BEGIN
+CREATE TRIGGER ticketNrGen
+ON ticket
+AFTER INSERT ON booking
+FOR EACH ROW -- affect only the inserted row
+-- NOT FOR REPLICATION no clue what this is you had it
+BEGIN    
+  
+    -- Iterate through rows in passportOnReservation where reservation_nr
+    -- matches bookingid.
 
--- END; //
+    -- For each row above create a ticket with the passnr INT and bookingid INT
+    SELECT NEW.bookingid AS 'Message';
+
+    DECLARE n INT DEFAULT 0;
+    DECLARE i INT DEFAULT 0;
+    SELECT COUNT(*) as 'coiunted' 
+    FROM passportOnReservation
+    WHERE reservation_nr=NEW.bookingid;
+
+    SET i=0;
+    WHILE i<n DO 
+      addTicket(NEW.bookingid, (
+        SELECT passport 
+        FROM passportOnReservation 
+        WHERE reservation_nr=NEW.bookingid)
+      );
+      -- INSERT INTO table_B(ID, VAL) SELECT (ID, VAL) FROM table_A LIMIT i,1;
+      SET i = i + 1;
+    END WHILE;
+
+    -- [trigger_while:] WHILE 
+    -- SELECT ticketNbr from ticket WHERE ticketNbr=ticket_number IS NOT NULL DO 
+    --     SET ticket_number = SELECT 
+    -- END WHILE [trigger_while]
+END; // 
+
 
 DELIMITER ;
 -- ##############################################################
@@ -711,27 +738,27 @@ DELIMITER ;
 
 -- ##############################################################
 -- TEST lines for Question3.sql
-SELECT "Trying to add 2 years" AS "Message";
-CALL addYear(2010, 2.3);
-CALL addYear(2011, 2.5);
-SELECT "Trying to add 4 days" AS "Message";
-CALL addDay(2010,"Monday",1);
-CALL addDay(2010,"Tuesday",1.5);
-CALL addDay(2011,"Saturday",2);
-CALL addDay(2011,"Sunday",2.5);
-SELECT "Trying to add 2 destinations" AS "Message";
-CALL addDestination("MIT","Minas Tirith","Mordor");
-CALL addDestination("HOB","Hobbiton","The Shire");
-SELECT "Trying to add 4 routes" AS "Message";
-CALL addRoute("MIT","HOB",2010,2000);
-CALL addRoute("HOB","MIT",2010,1600);
-CALL addRoute("MIT","HOB",2011,2100);
-CALL addRoute("HOB","MIT",2011,1500);
-SELECT "Trying to add 4 weeklyschedule flights" AS "Message";
-CALL addFlight("MIT","HOB", 2010, "Monday", "09:00:00");
-CALL addFlight("HOB","MIT", 2010, "Tuesday", "10:00:00");
-CALL addFlight("MIT","HOB", 2011, "Sunday", "11:00:00");
-CALL addFlight("HOB","MIT", 2011, "Sunday", "12:00:00");
+-- SELECT "Trying to add 2 years" AS "Message";
+-- CALL addYear(2010, 2.3);
+-- CALL addYear(2011, 2.5);
+-- SELECT "Trying to add 4 days" AS "Message";
+-- CALL addDay(2010,"Monday",1);
+-- CALL addDay(2010,"Tuesday",1.5);
+-- CALL addDay(2011,"Saturday",2);
+-- CALL addDay(2011,"Sunday",2.5);
+-- SELECT "Trying to add 2 destinations" AS "Message";
+-- CALL addDestination("MIT","Minas Tirith","Mordor");
+-- CALL addDestination("HOB","Hobbiton","The Shire");
+-- SELECT "Trying to add 4 routes" AS "Message";
+-- CALL addRoute("MIT","HOB",2010,2000);
+-- CALL addRoute("HOB","MIT",2010,1600);
+-- CALL addRoute("MIT","HOB",2011,2100);
+-- CALL addRoute("HOB","MIT",2011,1500);
+-- SELECT "Trying to add 4 weeklyschedule flights" AS "Message";
+-- CALL addFlight("MIT","HOB", 2010, "Monday", "09:00:00");
+-- CALL addFlight("HOB","MIT", 2010, "Tuesday", "10:00:00");
+-- CALL addFlight("MIT","HOB", 2011, "Sunday", "11:00:00");
+-- CALL addFlight("HOB","MIT", 2011, "Sunday", "12:00:00");
 -- SELECT * from froute;
 -- SELECT * from weeklyschedule;
 -- SELECT * from flight;
@@ -739,19 +766,19 @@ CALL addFlight("HOB","MIT", 2011, "Sunday", "12:00:00");
 -- QUESION 4 TEST START #######################################
 
 -- Function tests
-SELECT calculateFreeSeats(208) AS '4 a) Free seats function';
-SELECT calculatePrice(34) AS 'Day: Sunday';
-SELECT calculatePrice(108) AS 'Day: Tuesday';
-SELECT getWeekdayFactor('Tuesday',2010) AS 'Factor: 1.5';
-SELECT getWeekdayFactor('Saturday',2011) AS 'Factor: 2';
-SELECT calculatePrice(101) AS 'Start: 1600';
+-- SELECT calculateFreeSeats(208) AS '4 a) Free seats function';
+-- SELECT calculatePrice(34) AS 'Day: Sunday';
+-- SELECT calculatePrice(108) AS 'Day: Tuesday';
+-- SELECT getWeekdayFactor('Tuesday',2010) AS 'Factor: 1.5';
+-- SELECT getWeekdayFactor('Saturday',2011) AS 'Factor: 2';
+-- SELECT calculatePrice(101) AS 'Start: 1600';
 
-SELECT getPriceFromFlightnr(103) AS 'getPrice Start: 1600';
+-- SELECT getPriceFromFlightnr(103) AS 'getPrice Start: 1600';
 
-SELECT calculatePrice(207) AS 'Start: 1500';
+-- SELECT calculatePrice(207) AS 'Start: 1500';
 
-SELECT calculatePrice(50) AS 'Start: 2000';
-SELECT getWsidFromFlightnr(190) AS 'should be 4';
-SELECT getWsidFromFlightnr(90) AS 'should be 2';
+-- SELECT calculatePrice(50) AS 'Start: 2000';
+-- SELECT getWsidFromFlightnr(190) AS 'should be 4';
+-- SELECT getWsidFromFlightnr(90) AS 'should be 2';
 
--- source Question6.sql;
+source Question6.sql;
