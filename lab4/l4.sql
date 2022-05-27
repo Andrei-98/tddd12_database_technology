@@ -1,7 +1,7 @@
 \! clear
-DROP DATABASE brianair;
-CREATE DATABASE brianair;
-use brianair;
+-- DROP DATABASE brianair;
+-- CREATE DATABASE brianair;
+-- use brianair;
 
 --Drop all tables as necessary
 --DROP TABLE IF EXISTS table_name” resp. “DROP PROCEDURE IF EXISTS proc_name
@@ -196,17 +196,17 @@ BEGIN
 END; //
 
 -- Get wsid from weeklyschedule
-CREATE PROCEDURE getWsidFromWeeklySchedule(OUT out_wsid INT, 
-                            IN in_year INT,
-                            IN in_day VARCHAR(10),  
-                            IN in_dep_time TIME)
-BEGIN
-  SELECT wsid INTO out_wsid
-  FROM weeklyschedule 
-  WHERE year=in_year
-    AND day=in_day
-    AND dep_time=in_dep_time;
-END; //
+-- CREATE PROCEDURE getWsidFromWeeklySchedule(OUT out_wsid INT, 
+--                             IN in_year INT,
+--                             IN in_day VARCHAR(10),  
+--                             IN in_dep_time TIME)
+-- BEGIN
+--   SELECT wsid INTO out_wsid
+--   FROM weeklyschedule 
+--   WHERE year=in_year
+--     AND day=in_day
+--     AND dep_time=in_dep_time;
+-- END; //
 
 
 CREATE PROCEDURE addFlight(IN in_departure_airport_code VARCHAR(3), 
@@ -419,7 +419,7 @@ END; //
 
 DELIMITER ;
 
-DROP PROCEDURE IF EXISTS getFlightNr;
+
 DROP PROCEDURE IF EXISTS addReservation;
 
 DELIMITER //
@@ -473,6 +473,7 @@ BEGIN
 END; //
 
 
+DROP PROCEDURE IF EXISTS addPassenger;
 CREATE PROCEDURE addPassenger(IN in_reservation_nr INT, 
                               IN in_passport_number INT,
                               IN in_name VARCHAR(30))
@@ -607,8 +608,7 @@ END; //
 
 
 DROP FUNCTION IF EXISTS reservedSeatsOnReservationNr;
-
-CREATE FUNCTION reservedSeatsOnReservationNr(in_reservation_nr)
+CREATE FUNCTION reservedSeatsOnReservationNr(in_reservation_nr INT)
 RETURNS INT
 BEGIN
   DECLARE reservedSeats INT;
@@ -622,13 +622,14 @@ END; //
 
 
 DROP PROCEDURE IF EXISTS addPayment;
-
 CREATE PROCEDURE addPayment(IN in_reservation_nr INT,
                             IN in_credit_card_holder_name VARCHAR(30),
                             IN in_credit_card_nr BIGINT)
 BEGIN
   DECLARE flightNumber INT;
   DECLARE totalPrice INT;
+  DECLARE reservedSeats INT;
+
   IF getValidReservationId(in_reservation_nr) IS NOT NULL THEN
     SELECT "Reservation number exists" AS "TEMP DEBUG";
 
@@ -636,9 +637,11 @@ BEGIN
     SELECT flightnr INTO flightNumber
     FROM reservation
     WHERE rid=in_reservation_nr;
+    
+    SET reservedSeats = reservedSeatsOnReservationNr(in_reservation_nr);
 
-    IF calculateFreeSeats(flightNumber) >= reservedSeatsOnReservationNr(in_reservation_nr) THEN
-      SELECT calculatePrice(flightNumber)*reservedSeatsOnReservationNr(in_reservation_nr) INTO totalPrice;
+    IF calculateFreeSeats(flightNumber) >= reservedSeats THEN
+      SELECT calculatePrice(flightNumber) * reservedSeats INTO totalPrice;
       
       INSERT INTO booking(bookingid, creditcardnr, creditcardholder, totalprice)
       VALUES (in_reservation_nr, in_credit_card_nr, in_credit_card_holder_name, 
