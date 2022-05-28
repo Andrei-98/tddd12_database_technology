@@ -824,3 +824,7 @@ c) By adding the SLEEP(5); command right below the "IF freeSeats >= reservedSeat
 d) Our solution locks the tables affected by addPayment only under the time it takes for vacantseats in the table flight to be updated. Immediately after addPayment is complete the locks released.
 
 ******************** END QUESTION 10 *********************************/
+
+/******************* INDEX QUESTION ***********************************
+Having an secondary index for flightnr in the flight table will greatly increase access times of flights since flights are only created once and then accessed exponentially more times during their lifetimes. Adding new flights will probably also be done during down times to not disturb normal operation since using indexing slows down insertion time. 
+**********************************************************************/
