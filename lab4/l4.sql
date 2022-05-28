@@ -487,9 +487,9 @@ END; //
 DELIMITER ;
 
 
-DROP PROCEDURE IF EXISTS addReservation;
 
 DELIMITER //
+DROP PROCEDURE IF EXISTS addReservation;
 
 -- Create reservation on specific flight
 CREATE PROCEDURE addReservation(IN in_departure_airport_code VARCHAR(3),
@@ -647,6 +647,7 @@ CREATE PROCEDURE addContact(IN in_reservation_nr INT,
                             IN in_email VARCHAR(30),
                             IN in_phone BIGINT)
 sp: BEGIN
+  DECLARE contactAlreadyExists INT;
 
   IF getValidReservationId(in_reservation_nr) IS NULL THEN
     SELECT "The given reservation number does not exist" AS "Message";
@@ -658,9 +659,14 @@ sp: BEGIN
     SELECT "The person is not a passenger of the reservation" AS "Message";
     LEAVE sp;
   ELSE
-    -- column count doesnt match value conunt at row 1
-    INSERT INTO contact(cpassnr, phone, email)
-    VALUES (in_passport_number, in_phone, in_email);
+    SELECT cpassnr INTO contactAlreadyExists
+    FROM contact
+    WHERE cpassnr=in_passport_number;
+
+    IF contactAlreadyExists IS NULL THEN
+      INSERT INTO contact(cpassnr, phone, email)
+      VALUES (in_passport_number, in_phone, in_email);
+    END IF;
 
     UPDATE reservation
     SET
@@ -716,34 +722,16 @@ pros: BEGIN
     SELECT "The reservation has no contact yet" AS "Message";
     LEAVE pros;
   ELSE
-    -- SELECT "Reservation number exists" AS "TEMP DEBUG";
-
-    -- Get flightnumber
     SELECT flightnr INTO flightNumber
     FROM reservation
     WHERE rid=in_reservation_nr;
 
-    -- Works
     SET reservedSeats = reservedSeatsOnReservationNr(in_reservation_nr);
-    -- SELECT reservedSeats AS 'reservedSeats'; is 3
 
     SET freeSeats = calculateFreeSeats(flightNumber);
-    SELECT freeSeats AS 'freeSeats';
 
     IF freeSeats >= reservedSeats THEN
       SET totalPrice = calculatePrice(flightNumber) * reservedSeats;
-
-      -- SELECT calculatePrice(flightNumber) AS 'seatPrice';
-
-      SET totalPrice = calculatePrice(flightNumber) * reservedSeats;
-
-      -- SELECT totalPrice AS 'totalPrice';
-
-      SELECT calculateFreeSeats(flightNumber)-reservedSeats;
-      SELECT in_reservation_nr AS 'in_reservation_nr';
-      SELECT in_credit_card_nr AS 'in_credit_card_nr';
-      SELECT in_credit_card_holder_name AS 'in_credit_card_holder_name';
-      SELECT totalPrice AS 'totalPrice';
 
       INSERT INTO booking(bookingid, creditcardnr, creditcardholder, totalprice)
       VALUES (in_reservation_nr, in_credit_card_nr, in_credit_card_holder_name, totalPrice);      
@@ -795,8 +783,9 @@ LEFT JOIN froute as r ON w.routeid=r.routeid;
 
 -- source Question3.sql;
 -- source Question6.sql;
-source Question7.sql;
-
+-- source Question7.sql;
+ source Question10FillWithFlights.sql
+-- source Question10MakeBooking.sql
 
 /******************** QUESTION 8 **********************************
 A) How can you protect the credit card information in the database from hackers?
@@ -810,3 +799,20 @@ B) Give three advantages of using stored procedures in the database (and thereby
 
 3. Easier to modify stored procedures than front-end functions since changing front-end functions might need the front-end to be temporarily taken down for maintenance and then redeployed.
 ******************** END QUESTION 8 *********************************/
+
+
+/******************** QUESTION 9 **********************************
+b) It is not visible in B since a transaction has to be commited by A for it to shown in B.  
+
+c) After adding a reservation in A and then trying to DELETE it from B. B gets stuck until A has either commited or rollbacked. In the case of commiting A the reservation will be queued for deletion in B but won't be deleted until B also commits. If B is rollbacked. The DELETE won't happen and A's reservation will be preserved. Modifications in transactions won't be applied until affected transaction commits as they are isolated from other .
+******************** END QUESTION 9 *********************************/
+
+
+/******************** QUESTION 10 **********************************
+a) Overbooking did not occur as a contact 
+
+b)
+c)
+d)
+e)
+******************** END QUESTION 10 *********************************/

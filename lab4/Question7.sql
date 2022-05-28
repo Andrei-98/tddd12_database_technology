@@ -32,13 +32,13 @@ CALL addPassenger(@a,00000001,"Frodo Baggins");
 CALL addContact(@a,00000001,"frodo@magic.mail",080667989); 
 CALL addPassenger(@a,00000002,"Sam Gamgee"); 
 CALL addPassenger(@a,00000003,"Merry Pippins");
-CALL addPayment (@a, "Gandalf", 6767); -- fails
+CALL addPayment (@a, "Gandalf", 6767); 
 CALL addReservation("MIT","HOB",2010,1,"Monday","09:00:00",3,@b); 
 CALL addPassenger(@b,00000011,"Nazgul1"); 
 CALL addContact(@b,00000011,"Nazgul@darkness.mail",666); 
 CALL addPassenger(@b,00000012,"Nazgul2"); 
 CALL addPassenger(@b,00000013,"Nazgul3");
-CALL addPayment (@b, "Saruman", 6868); -- fails
+CALL addPayment (@b, "Saruman", 6868); 
 
 SELECT "Step3, check that the results are correct. If so the next query should return the empty set. If any line is returned then this is either missing, incorrect or additional to what the database should contain" AS "Message";
 SELECT departure_city_name, destination_city_name, departure_time, departure_day,departure_week, departure_year, nr_of_free_seats, current_price_per_seat
