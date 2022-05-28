@@ -1,11 +1,11 @@
-\! clear
+-- \! clear
 -- DROP DATABASE brianair;
 -- CREATE DATABASE brianair;
 -- use brianair;
 
-DROP DATABASE danhu849;
-CREATE DATABASE danhu849;
-use danhu849;
+-- DROP DATABASE danhu849;
+-- CREATE DATABASE danhu849;
+-- use danhu849;
 
 --Drop all tables as necessary
 --DROP TABLE IF EXISTS table_name” resp. “DROP PROCEDURE IF EXISTS proc_name
@@ -54,8 +54,6 @@ CREATE TABLE weeklyschedule
     dep_time TIME,
     wsid INT NOT NULL AUTO_INCREMENT,
     CONSTRAINT pk_weekly_schedule PRIMARY KEY(wsid),
-    -- Primary key Day from wdf is pointing here thus
-    -- day needs to be unique.
     CONSTRAINT unique_time_routeId UNIQUE(year, day, routeId, dep_time)) 
     ENGINE=InnoDB;
     
@@ -122,7 +120,7 @@ CREATE TABLE ticket
     ENGINE=InnoDB;
 
 
--- Foreign key
+-- Foreign keys
 SELECT 'Altering tables with foreign keys' AS 'Message';
 
 ALTER TABLE contact ADD CONSTRAINT fk_contact_passenger FOREIGN KEY (cpassnr) REFERENCES passenger(passnr);
@@ -200,19 +198,6 @@ BEGIN
   AND (year=in_year);
 END; //
 
--- Get wsid from weeklyschedule
--- CREATE PROCEDURE getWsidFromWeeklySchedule(OUT out_wsid INT, 
---                             IN in_year INT,
---                             IN in_day VARCHAR(10),  
---                             IN in_dep_time TIME)
--- BEGIN
---   SELECT wsid INTO out_wsid
---   FROM weeklyschedule 
---   WHERE year=in_year
---     AND day=in_day
---     AND dep_time=in_dep_time;
--- END; //
-
 
 CREATE PROCEDURE addFlight(IN in_departure_airport_code VARCHAR(3), 
                            IN in_arrival_airport_code VARCHAR(3), 
@@ -242,9 +227,6 @@ BEGIN
 
 END; //
 
-
-
-
 DELIMITER ;
 
 
@@ -261,7 +243,7 @@ DELIMITER //
 CREATE FUNCTION calculateFreeSeats(flightnumber INT)
 RETURNS INT
 BEGIN
-  DECLARE freeseats INT DEFAULT null; -- null when it's wrong/not found.
+  DECLARE freeseats INT DEFAULT null;
 
   SELECT vacantseats INTO freeseats
   FROM flight
@@ -282,7 +264,7 @@ BEGIN
 
   SELECT
   CASE wdFactor
-    WHEN wdFactor=NULL THEN 1.0 -- Should return NULL if not in the table?
+    WHEN wdFactor=NULL THEN 1.0
     ELSE wdFactor
   END
   INTO wdFactor;
@@ -316,17 +298,6 @@ BEGIN
   RETURN flightWSID; 
 END;//
 
--- CREATE FUNCTION getRouteIdFromFlightnr(flightnumber INT)
--- RETURNS INT
--- BEGIN
---   DECLARE flightRouteId INT;
-
---   SELECT routeId INTO flightRouteId
---   FROM flight
---   WHERE flightnr=flightnumber;
-
---   RETURN flightRouteId; 
--- END;//
 
 CREATE FUNCTION getPriceFromFlightnr(flightnumber INT)
 RETURNS DOUBLE
@@ -353,23 +324,9 @@ BEGIN
   RETURN routePrices; 
 END;//
 
--- The flight pricing depends on
--- • the start and stop destination which (together) has a route price,
--- • the day of the week. BrianAir has the same weekday pricing factor for all
--- flights regardless of destination, e.g. factor 4.7 on Fridays and Sundays,
--- factor 1 on Tuesdays, etc.
--- • the number of already confirmed/booked passengers on the flight. The
--- more passengers are booked the more expensive the flight becomes.
--- • what profit BrianAir wants to make on the flights. This factor is the same
--- for all flights.
-
--- Pricing factors (including profitfactor) and route prices can change when the
--- schedule changes, once per year!
 
 CREATE FUNCTION calculatePrice(flightnumber INT)
 RETURNS DOUBLE
--- RETURNS VARCHAR(10)
--- RETURNS INT
 BEGIN
   DECLARE vacantseats INT DEFAULT 0;
   DECLARE totalPrice DOUBLE DEFAULT 0.0;
@@ -397,7 +354,6 @@ BEGIN
   -- SET factor according to weekday and year
   SELECT getWeekdayFactor(wantedDay, wantedYear) INTO dayFactor;
 
-  -- May need to check this one once more
   SET totalPrice=round(routePrice*dayFactor*(40-vacantseats+1)/40*getProfitFactor(wantedYear), 3); 
   
   RETURN totalPrice;
@@ -419,14 +375,8 @@ END; //
 
 CREATE TRIGGER ticketNrGen
 AFTER INSERT ON booking
-FOR EACH ROW -- affect only the inserted row
--- NOT FOR REPLICATION no clue what this is you had it
+FOR EACH ROW 
 BEGIN
- 
-  -- Iterate through rows in passportOnReservation where reservation_nr
-  -- matches bookingid.
-
-  -- For each row above create a ticket with the passnr INT and bookingid INT
 
   DECLARE n INT;
   DECLARE i INT;
@@ -450,10 +400,6 @@ BEGIN
     LIMIT startingRow, 1;
 
     SET startingRow = startingRow + 1;
-
-    -- DELETE FROM passportOnReservation
-    -- WHERE reservation_nr=newBookingNumber
-    --   AND passport=wantedPassport;
 
     SET randSeed = FLOOR(RAND() * 999999);
     CALL addTicket(newBookingNumber, randSeed, wantedPassport);
@@ -511,8 +457,6 @@ BEGIN
                   in_arrival_airport_code, 
                   in_year);
 
-  -- Make sure that in_year, in_day and in_time match up with 
-  -- year, day and dep_time in weeklyscheedule.
   SELECT wsid INTO the_wsid
   FROM weeklyschedule
   WHERE (year=in_year
@@ -523,10 +467,7 @@ BEGIN
     SELECT "There exist no flight for the given route, date and time"
     AS 'Message';
   ELSE
-
-    -- -- Get flightnumber from the info we have as input.
     SET flightnumber = getFlightNr(in_week, in_year, the_wsid);
-
     SET vacantSeats = calculateFreeSeats(flightnumber);
     IF ( vacantSeats >= in_number_of_passengers ) THEN
       INSERT INTO reservation(flightnr)
@@ -732,7 +673,7 @@ pros: BEGIN
 
     IF freeSeats >= reservedSeats THEN
       -- If uncommented -> overbooking normaly occurs:
-      SELECT SLEEP(5) AS 'inside IF freeSeats >= reservedSeats';
+      SELECT SLEEP(5);
 
       UPDATE flight
       SET vacantseats=calculateFreeSeats(flightNumber)-reservedSeats
@@ -790,7 +731,7 @@ LEFT JOIN froute as r ON w.routeid=r.routeid;
 -- source Question3.sql;
 -- source Question6.sql;
 -- source Question7.sql;
- source Question10FillWithFlights.sql
+-- source Question10FillWithFlights.sql
 -- source Question10MakeBooking.sql
 
 /******************** QUESTION 8 **********************************
@@ -824,6 +765,7 @@ c) By adding the SLEEP(5); command right below the "IF freeSeats >= reservedSeat
 d) Our solution locks the tables affected by addPayment only under the time it takes for vacantseats in the table flight to be updated. Immediately after addPayment is complete the locks released.
 
 ******************** END QUESTION 10 *********************************/
+
 
 /******************* INDEX QUESTION ***********************************
 Having an secondary index for flightnr in the flight table will greatly increase access times of flights since flights are only created once and then accessed exponentially more times during their lifetimes. Adding new flights will probably also be done during down times to not disturb normal operation since using indexing slows down insertion time. 
