@@ -797,3 +797,16 @@ LEFT JOIN froute as r ON w.routeid=r.routeid;
 -- source Question6.sql;
 source Question7.sql;
 
+
+/******************** QUESTION 8 **********************************
+A) How can you protect the credit card information in the database from hackers?
+• By making sure to be PCI-compliant and only store information absolutely necessary. That information should in turn be encrypted or hashed, preferably with a salt before being stored in the database. Encryption should occur on both the client and server side to decrease the risk of critical information being intercepted.
+
+B) Give three advantages of using stored procedures in the database (and thereby execute them on the server) instead of writing the same functions in the front- end of the system (in for example java-script on a webpage).
+
+1. Security is increased since direct access to the tables is not given. The procedures act as a middle layer limiting what a potential adversary can do when given unauthorized access to the system. Furthermore, the underlying code for the procedures can be encrypted further limiting attack surface.
+
+2. It is faster to execute the procedures server side since servers usually have more resources than client hardware. 
+
+3. Easier to modify stored procedures than front-end functions since changing front-end functions might need the front-end to be temporarily taken down for maintenance and then redeployed.
+******************** END QUESTION 8 *********************************/
