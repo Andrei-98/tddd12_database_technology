@@ -741,79 +741,41 @@ pros: BEGIN
   END IF;
 END //
 
+
+DROP FUNCTION IF EXISTS getAirportNameFromCode;
+CREATE FUNCTION getAirportNameFromCode(in_code VARCHAR(3))
+RETURNS VARCHAR(30)
+BEGIN
+
+  DECLARE out_name VARCHAR(30);
+
+  SELECT name INTO out_name
+  FROM airport
+  WHERE code=in_code;
+
+  RETURN out_name;
+END; //
+
+
 DELIMITER ;
 
--- View should contain: - Must be run on the school mysql instance :l
--- departure_city_name, destination_city_name, departure_time,
--- departure_day, departure_week, departure_year, nr_of_free_seats,
--- current_price_per_seat.
 DROP VIEW IF EXISTS allFlights CASCADE;
-
 CREATE VIEW allFlights AS
-SELECT
-
--- SELECT "Testing answer for 6, handling reservations and bookings" as "Message";
--- SELECT "Filling database with flights" as "Message";
--- /*Fill the database with data */
--- CALL addYear(2010, 2.3);
--- CALL addDay(2010,"Monday",1);
--- CALL addDestination("MIT","Minas Tirith","Mordor");
--- CALL addDestination("HOB","Hobbiton","The Shire");
--- CALL addRoute("MIT","HOB",2010,2000);
--- CALL addFlight("MIT","HOB", 2010, "Monday", "09:00:00");
--- CALL addFlight("MIT","HOB", 2010, "Monday", "21:00:00");
-
--- -- SELECT "Test 1: Adding a reservation, expected OK result" as "Message";
--- CALL addReservation("MIT","HOB",2010,1,"Monday","09:00:00",3,@a);
--- SELECT "Check that the reservation number is returned properly (any number will do):" AS "Message",@a AS "Res. number returned"; 
+SELECT 
+      getAirportNameFromCode(r.fromcode) as "departure_city_name",
+      getAirportNameFromCode(r.tocode) as "destination_city_name",
+      w.dep_time as "departure_time",
+      w.day as "departure_day",
+      f.week as "departure_week",
+      f.year as "departure_year",
+      f.vacantseats as "nr_of_free_seats",
+      calculatePrice(f.flightnr) as "current_price_per_seat"
+FROM flight as f
+LEFT JOIN weeklyschedule as w ON f.wsid=w.wsid
+LEFT JOIN froute as r ON w.routeid=r.routeid;
 
 
--- ##############################################################
--- TEST lines for Question3.sql
--- SELECT "Trying to add 2 years" AS "Message";
--- CALL addYear(2010, 2.3);
--- CALL addYear(2011, 2.5);
--- SELECT "Trying to add 4 days" AS "Message";
--- CALL addDay(2010,"Monday",1);
--- CALL addDay(2010,"Tuesday",1.5);
--- CALL addDay(2011,"Saturday",2);
--- CALL addDay(2011,"Sunday",2.5);
--- SELECT "Trying to add 2 destinations" AS "Message";
--- CALL addDestination("MIT","Minas Tirith","Mordor");
--- CALL addDestination("HOB","Hobbiton","The Shire");
--- SELECT "Trying to add 4 routes" AS "Message";
--- CALL addRoute("MIT","HOB",2010,2000);
--- CALL addRoute("HOB","MIT",2010,1600);
--- CALL addRoute("MIT","HOB",2011,2100);
--- CALL addRoute("HOB","MIT",2011,1500);
--- SELECT "Trying to add 4 weeklyschedule flights" AS "Message";
--- CALL addFlight("MIT","HOB", 2010, "Monday", "09:00:00");
--- CALL addFlight("HOB","MIT", 2010, "Tuesday", "10:00:00");
--- CALL addFlight("MIT","HOB", 2011, "Sunday", "11:00:00");
--- CALL addFlight("HOB","MIT", 2011, "Sunday", "12:00:00");
--- SELECT * from froute;
--- SELECT * from weeklyschedule;
--- SELECT * from flight;
--- QUESION 3 TEST END #######################################
--- QUESION 4 TEST START #######################################
-
--- Function tests
--- SELECT calculateFreeSeats(208) AS '4 a) Free seats function';
--- SELECT calculatePrice(34) AS 'Day: Sunday';
--- SELECT calculatePrice(108) AS 'Day: Tuesday';
--- SELECT getWeekdayFactor('Tuesday',2010) AS 'Factor: 1.5';
--- SELECT getWeekdayFactor('Saturday',2011) AS 'Factor: 2';
--- SELECT calculatePrice(101) AS 'Start: 1600';
-
--- SELECT getPriceFromFlightnr(103) AS 'getPrice Start: 1600';
-
--- SELECT calculatePrice(207) AS 'Start: 1500';
-
--- SELECT calculatePrice(50) AS 'Start: 2000';
--- SELECT getWsidFromFlightnr(190) AS 'should be 4';
--- SELECT getWsidFromFlightnr(90) AS 'should be 2';
 -- source Question3.sql;
-
 -- source Question6.sql;
 source Question7.sql;
-SELECT * FROM ticket;
+
