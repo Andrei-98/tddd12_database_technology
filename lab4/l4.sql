@@ -398,7 +398,7 @@ BEGIN
   SELECT getWeekdayFactor(wantedDay, wantedYear) INTO dayFactor;
 
   -- May need to check this one once more
-  SET totalPrice=round(routePrice*dayFactor*(40-vacantseats+1)/40*getProfitFactor(wantedYear), 0); 
+  SET totalPrice=round(routePrice*dayFactor*(40-vacantseats+1)/40*getProfitFactor(wantedYear), 3); 
   
   RETURN totalPrice;
 END; //
