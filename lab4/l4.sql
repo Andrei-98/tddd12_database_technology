@@ -1,7 +1,11 @@
 \! clear
-DROP DATABASE brianair;
-CREATE DATABASE brianair;
-use brianair;
+-- DROP DATABASE brianair;
+-- CREATE DATABASE brianair;
+-- use brianair;
+
+DROP DATABASE danhu849;
+CREATE DATABASE danhu849;
+use danhu849;
 
 --Drop all tables as necessary
 --DROP TABLE IF EXISTS table_name” resp. “DROP PROCEDURE IF EXISTS proc_name
@@ -429,6 +433,7 @@ BEGIN
   DECLARE randSeed DOUBLE;
   DECLARE wantedPassport INT;
   DECLARE newBookingNumber INT;
+  DECLARE startingRow INT DEFAULT 0;
 
   SET newBookingNumber=NEW.bookingid;
   
@@ -441,7 +446,10 @@ BEGIN
   WHILE i<n DO 
     SELECT passport INTO wantedPassport
     FROM passportOnReservation 
-    WHERE reservation_nr=newBookingNumber;
+    WHERE reservation_nr=newBookingNumber
+    LIMIT startingRow, 1;
+
+    SET startingRow = startingRow + 1;
 
     -- DELETE FROM passportOnReservation
     -- WHERE reservation_nr=newBookingNumber
@@ -699,6 +707,7 @@ pros: BEGIN
   DECLARE flightNumber INT;
   DECLARE totalPrice INT;
   DECLARE reservedSeats INT;
+  DECLARE freeSeats INT;
 
   IF getValidReservationId(in_reservation_nr) IS NULL THEN
     SELECT "The given reservation number does not exist" AS "Message";
@@ -714,26 +723,35 @@ pros: BEGIN
     FROM reservation
     WHERE rid=in_reservation_nr;
 
+    -- Works
     SET reservedSeats = reservedSeatsOnReservationNr(in_reservation_nr);
+    -- SELECT reservedSeats AS 'reservedSeats'; is 3
 
-    -- reservedSeats is 1
-    IF calculateFreeSeats(flightNumber) >= reservedSeats THEN
+    SET freeSeats = calculateFreeSeats(flightNumber);
+    SELECT freeSeats AS 'freeSeats';
+
+    IF freeSeats >= reservedSeats THEN
       SET totalPrice = calculatePrice(flightNumber) * reservedSeats;
 
+      -- SELECT calculatePrice(flightNumber) AS 'seatPrice';
 
-      -- SELECT calculatePrice(flightNumber) AS 'calprice';
+      SET totalPrice = calculatePrice(flightNumber) * reservedSeats;
 
-      -- SELECT calculatePrice(flightNumber) * reservedSeats INTO totalPrice;
+      -- SELECT totalPrice AS 'totalPrice';
+
+      SELECT calculateFreeSeats(flightNumber)-reservedSeats;
+      SELECT in_reservation_nr AS 'in_reservation_nr';
+      SELECT in_credit_card_nr AS 'in_credit_card_nr';
+      SELECT in_credit_card_holder_name AS 'in_credit_card_holder_name';
+      SELECT totalPrice AS 'totalPrice';
 
       INSERT INTO booking(bookingid, creditcardnr, creditcardholder, totalprice)
-      VALUES (in_reservation_nr, in_credit_card_nr, in_credit_card_holder_name, 
-        totalPrice
-      );
+      VALUES (in_reservation_nr, in_credit_card_nr, in_credit_card_holder_name, totalPrice);      
 
       UPDATE flight
       SET vacantseats=calculateFreeSeats(flightNumber)-reservedSeats
       WHERE flightnr=flightNumber;
-
+      LEAVE pros;
     ELSE
       SELECT "There are not enough seats available on the flight anymore, deleting reservation" AS "Message";
       LEAVE pros;
@@ -749,8 +767,8 @@ DELIMITER ;
 -- current_price_per_seat.
 DROP VIEW IF EXISTS allFlights CASCADE;
 
-CREATE VIEW allFlights AS
-SELECT
+-- CREATE VIEW allFlights AS
+-- SELECT
 
 -- SELECT "Testing answer for 6, handling reservations and bookings" as "Message";
 -- SELECT "Filling database with flights" as "Message";
@@ -814,6 +832,7 @@ SELECT
 -- SELECT getWsidFromFlightnr(90) AS 'should be 2';
 -- source Question3.sql;
 
+-- source Question3.sql;
 -- source Question6.sql;
 source Question7.sql;
-SELECT * FROM ticket;
+-- SELECT * FROM ticket;
