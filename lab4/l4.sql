@@ -731,14 +731,20 @@ pros: BEGIN
     SET freeSeats = calculateFreeSeats(flightNumber);
 
     IF freeSeats >= reservedSeats THEN
+      -- If uncommented -> overbooking normaly occurs:
+      SELECT SLEEP(5) AS 'inside IF freeSeats >= reservedSeats';
+
+      UPDATE flight
+      SET vacantseats=calculateFreeSeats(flightNumber)-reservedSeats
+      WHERE flightnr=flightNumber;
+  
+
       SET totalPrice = calculatePrice(flightNumber) * reservedSeats;
 
       INSERT INTO booking(bookingid, creditcardnr, creditcardholder, totalprice)
       VALUES (in_reservation_nr, in_credit_card_nr, in_credit_card_holder_name, totalPrice);      
 
-      UPDATE flight
-      SET vacantseats=calculateFreeSeats(flightNumber)-reservedSeats
-      WHERE flightnr=flightNumber;
+      
       LEAVE pros;
     ELSE
       SELECT "There are not enough seats available on the flight anymore, deleting reservation" AS "Message";
@@ -809,10 +815,12 @@ c) After adding a reservation in A and then trying to DELETE it from B. B gets s
 
 
 /******************** QUESTION 10 **********************************
-a) Overbooking did not occur as a contact 
+a) Overbooking did not occur as one reservation was completed before the other one.
 
-b)
-c)
-d)
-e)
+b) Yes an overbooking can occur if both sessions reach within the "IF freeSeats >= reservedSeats" inside addPayment without decreasing reservedSeats.
+
+c) By adding the SLEEP(5); command right below the "IF freeSeats >= reservedSeats" many sessions can pass the IF statement and overbooked flights may occur.
+
+d) Our solution locks the tables affected by addPayment only under the time it takes for vacantseats in the table flight to be updated. Immediately after addPayment is complete the locks released.
+
 ******************** END QUESTION 10 *********************************/
