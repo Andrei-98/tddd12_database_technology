@@ -1,13 +1,13 @@
 -- TDDD12_C2_danhu849_andpl509_ass4
 
--- \! clear
+\! clear
 -- DROP DATABASE brianair;
 -- CREATE DATABASE brianair;
 -- use brianair;
 
--- DROP DATABASE danhu849;
--- CREATE DATABASE danhu849;
--- use danhu849;
+DROP DATABASE danhu849;
+CREATE DATABASE danhu849;
+use danhu849;
 
 --Drop all tables as necessary
 --DROP TABLE IF EXISTS table_name” resp. “DROP PROCEDURE IF EXISTS proc_name
@@ -675,7 +675,7 @@ pros: BEGIN
 
     IF freeSeats >= reservedSeats THEN
       -- If uncommented -> overbooking normaly occurs:
-      SELECT SLEEP(5);
+      -- SELECT SLEEP(5);
 
       UPDATE flight
       SET vacantseats=calculateFreeSeats(flightNumber)-reservedSeats
