@@ -691,6 +691,13 @@ pros: BEGIN
       LEAVE pros;
     ELSE
       SELECT "There are not enough seats available on the flight anymore, deleting reservation" AS "Message";
+      -- Remove all the information related to such a reservation should be deleted e.g., delete tuples from passportOnReservation, Reservation, etc.
+      DELETE FROM passportOnReservation
+      WHERE reservation_nr=in_reservation_nr;
+
+      DELETE FROM reservation
+      WHERE rid=in_reservation_nr;
+
       LEAVE pros;
     END IF;
   END IF;
